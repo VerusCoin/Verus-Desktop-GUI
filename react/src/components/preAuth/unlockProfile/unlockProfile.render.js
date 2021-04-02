@@ -2,7 +2,7 @@ import React from 'react';
 import ProtectedInputForm from '../../../containers/ProtectedInputForm/ProtectedInputForm'
 
 export const UnlockProfileRender = function() {
-  return (
+  return this.state.formHidden ? null : (
     <form className="pre-auth-body-container">
       <h2 className="text-center">Unlock your profile.</h2>
       <ProtectedInputForm

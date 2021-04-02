@@ -11,7 +11,6 @@ import {
   SET_USERS,
   SET_USER,
   ACTIVATE_COIN,
-  SET_AUTHENTICATION,
   UNTRACK_COIN,
   ENABLE_START_WITH_LAST_COINS,
   ENABLE_START_AT_LAST_LOCATION,
@@ -32,10 +31,6 @@ export const users = (state = {
   activeUser: null,
   loggedIn: false,
   loggingOut: false,
-  authenticated: {
-    [ETH]: false,
-    [ELECTRUM]: false
-  }
 }, action) => {
   switch (action.type) {
     case SET_USERS: 
@@ -164,11 +159,6 @@ export const users = (state = {
       return {
         ...state,
         loggingOut: false
-      }
-    case SET_AUTHENTICATION:
-      return {
-        ...state,
-        authenticated: {...state.authenticated, [ETH]: action[ETH], [ELECTRUM]: action[ELECTRUM]}
       }
     default:
       return state;

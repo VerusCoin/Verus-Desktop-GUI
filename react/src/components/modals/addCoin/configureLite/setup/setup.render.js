@@ -1,35 +1,6 @@
 import React from 'react';
 import ProtectedInputForm from '../../../../../containers/ProtectedInputForm/ProtectedInputForm'
 
-/*
-<ProtectedInputForm 
-  heading="Protected input form test"
-  submitBtnText="Continue"
-  multiline={true}
-  onSubmit={(password) => {console.log(password + " submitted after one step")}}
-  confirmHeading="Confirm password heading"
-  confirm={true}
-  confirmBtnText="Confirm"
-  seedGenerator={true}
-/>
-<ProtectedInputForm 
-  heading="Protected input form test"
-  submitBtnText="Continue"
-  multiline={true}
-  onSubmit={(password) => {console.log(password + " submitted after one step")}}
-  confirmHeading="Confirm password heading"
-  confirm={true}
-  confirmBtnText="Confirm"
-/>
-<ProtectedInputForm 
-  heading="Protected input form test"
-  submitBtnText="Continue"
-  multiline={true}
-  onSubmit={(password) => {console.log(password + " submitted after one step")}}
-  inlineSubmit={true}
-/>
-*/
-
 export const SetupRender = function() {
   return (
     <div className="d-flex justify-content-center align-items-center flex-column" style={{ paddingBottom: 65 }}>

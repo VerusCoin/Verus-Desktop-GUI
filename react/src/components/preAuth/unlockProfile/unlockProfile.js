@@ -5,7 +5,8 @@ import {
 } from './unlockProfile.render';
 import { decryptKey } from '../../../util/api/users/pinData'
 import { NATIVE, SUCCESS_SNACK, MID_LENGTH_ALERT } from '../../../util/constants/componentConstants'
-import { authenticateActiveUser, loginUser, newSnackbar } from '../../../actions/actionCreators'
+import { loginUser, newSnackbar } from '../../../actions/actionCreators'
+import { authenticateSeed } from '../../../util/api/users/userData';
 
 class UnlockProfile extends React.Component {
   constructor(props) {
@@ -13,23 +14,28 @@ class UnlockProfile extends React.Component {
 
     this.state = {
       formError: false,
-      formLock: false
+      formLock: false,
+      formHidden: true
     }
 
     this.handleSubmit = this.handleSubmit.bind(this)
     this.finishLogin = this.finishLogin.bind(this)
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     const { defaultUser, loadedUsers, selectedUser } = this.props
     const currentUser = loadedUsers[selectedUser ? selectedUser : defaultUser]
 
     if (Object.values(currentUser.startCoins).every((coinObj) => {
       return coinObj.mode === NATIVE
     }) || currentUser.pinFile == null) {
-      this.finishLogin()
+      await this.finishLogin()
     } else {
-      this.pwdInput.focus()
+      const ref = this 
+
+      this.setState({ formHidden: false }, () => {
+        ref.pwdInput.focus()
+      })
     }
   }
 
@@ -41,8 +47,8 @@ class UnlockProfile extends React.Component {
       try {
         const seed = await decryptKey(password, loadedUsers[userId].pinFile)
 
-        dispatch(await authenticateActiveUser(seed))
-        this.finishLogin()
+        await authenticateSeed(seed)
+        await this.finishLogin()
       } catch (e) {
         console.error(e.message)
         this.setState({ formLock: false, formError: e.message })
@@ -50,13 +56,27 @@ class UnlockProfile extends React.Component {
     })
   }
 
-  finishLogin() {
+  async finishLogin() {
     const { selectedUser, dispatch, defaultUser, loadedUsers } = this.props
+    const loginRes = await loginUser(
+      selectedUser ? loadedUsers[selectedUser] : loadedUsers[defaultUser]
+    )
 
-    dispatch(newSnackbar(SUCCESS_SNACK, `User ${selectedUser ? loadedUsers[selectedUser].name : loadedUsers[defaultUser].name} logged in!`, MID_LENGTH_ALERT))
-    loginUser(selectedUser ? loadedUsers[selectedUser] : loadedUsers[defaultUser]).map((action) => {
-      dispatch(action)
-    })
+    dispatch(
+      newSnackbar(
+        SUCCESS_SNACK,
+        `User ${
+          selectedUser
+            ? loadedUsers[selectedUser].name
+            : loadedUsers[defaultUser].name
+        } logged in!`,
+        MID_LENGTH_ALERT
+      )
+    )
+    
+    loginRes.map((action) => {
+      dispatch(action);
+    });
   }
 
   render() {

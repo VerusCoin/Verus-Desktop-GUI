@@ -70,6 +70,9 @@ export const API_STOP_STAKING = 'stop_staking'
 export const API_SHIELDCOINBASE = 'shieldcoinbase'
 export const API_SHIELDCOINBASE_PREFLIGHT = 'shieldcoinbase_preflight'
 export const API_RFOX_CLAIM_BALANCES = 'rfox/claim_account_balances'
+export const API_LOGIN_USER = 'users/login'
+export const API_LOGOUT_USER = 'users/logout'
+export const API_GET_CURRENT_USER = 'users/current'
 
 // Non-blockchain API call paths
 export const LOAD_USERS = 'users/load'
@@ -87,6 +90,7 @@ export const API_REMOVE_COIN = 'remove_coin'
 export const CHECK_ZCASH_PARAMS = 'zcashparamsexist'
 export const DL_ZCASH_PARAMS = 'zcparamsdl'
 export const AUTHENTICATE = 'auth'
+export const CHECK_AUTHENTICATION = 'check_auth'
 export const LOG_OUT = 'logout' 
 export const GET_STATIC_SYSTEM_DATA = 'get_static_system_data'
 export const API_GET_CPU_TEMP = 'get_cpu_temp'
@@ -429,6 +433,12 @@ export const SIMPLE_CONVERSION = 'simple_conversion'
 export const ADVANCED_CONVERSION = 'advanced_conversion'
 export const CONVERSION_OVERVIEW = 'conversion_overview'
 
+// Plugins API
+export const API_INSTALL_PLUGIN = 'plugin/install'
+export const API_RUN_PLUGIN = 'plugin/run'
+export const API_LIST_PLUGINS = 'plugin/all'
+export const API_GET_PLUGIN = 'plugin/get'
+export const API_AUTHENTICATE_COIN = 'plugin/builtin/authenticator/authenticate'
 
 
 

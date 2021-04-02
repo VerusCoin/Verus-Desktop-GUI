@@ -9,7 +9,7 @@ import {
   initLocalWhitelists
 } from '../../actions/actionCreators';
 import { refreshSystemIntervals, openTextDialog, closeTextDialog, getAppDataUpdateStatus, makeAppDataChanges } from '../../actions/actionDispatchers'
-import { POST_AUTH, PRE_AUTH, SELECT_PROFILE, ERROR_SNACK, MID_LENGTH_ALERT, NATIVE, UNLOCK_PROFILE } from '../../util/constants/componentConstants';
+import { POST_AUTH, PRE_AUTH, SELECT_PROFILE, ERROR_SNACK, MID_LENGTH_ALERT, NATIVE, UNLOCK_PROFILE, API_GET_CURRENT_USER } from '../../util/constants/componentConstants';
 import Config from '../../config';
 import { connect } from 'react-redux';
 import PostAuth from '../postAuth/postAuth'
@@ -115,7 +115,9 @@ class Main extends React.Component {
             ) ||
             loadedUsers[defaultUserId].pinFile == null
           ) {
-            loginUser(loadedUsers[defaultUserId]).map((action) => {
+            const loginRes = await loginUser(loadedUsers[defaultUserId])
+
+            loginRes.map((action) => {
               dispatch(action);
             });
           } else {

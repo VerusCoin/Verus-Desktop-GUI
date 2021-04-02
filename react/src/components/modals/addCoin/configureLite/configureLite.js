@@ -4,9 +4,10 @@ import {
   ConfigureLiteRender
 } from './configureLite.render';
 import { setModalNavigationPath } from '../../../../actions/actionCreators'
-import { SETUP, LOGIN, SUCCESS_SNACK, MID_LENGTH_ALERT, ERROR_SNACK, ADD_COIN, SELECT_COIN } from '../../../../util/constants/componentConstants'
+import { SETUP, LOGIN, SUCCESS_SNACK, MID_LENGTH_ALERT, ERROR_SNACK, ADD_COIN, SELECT_COIN, API_SUCCESS } from '../../../../util/constants/componentConstants'
 import { addCoin } from '../../../../actions/actionDispatchers'
-import { authenticateActiveUser, newSnackbar } from '../../../../actions/actionCreators'
+import { newSnackbar } from '../../../../actions/actionCreators'
+import { authenticateSeed, checkAuthentication } from '../../../../util/api/users/userData';
 
 class ConfigureLite extends React.Component {
   constructor(props) {
@@ -26,9 +27,11 @@ class ConfigureLite extends React.Component {
     this._handleError = this._handleError.bind(this)
   }
 
-  componentDidMount() {
-    if (this.props.authenticated[this.props.addCoinParams.mode]) {
-      this.activateCoin()
+  async componentDidMount() {
+    const authCheck = await checkAuthentication(this.props.addCoinParams.mode)
+
+    if (authCheck.msg === API_SUCCESS && authCheck.result) {
+      this.activateCoin(true)
     } else {
       let navigationAction
       if (this.props.activeUser.pinFile) {
@@ -54,7 +57,7 @@ class ConfigureLite extends React.Component {
     this.props.dispatch(setModalNavigationPath(`${ADD_COIN}/${SELECT_COIN}`))
   }
 
-  activateCoin() {
+  activateCoin(checkedAuth = false) {
     this.props.setModalLock(true)
 
     this.setState({ loading: true }, async () => {
@@ -62,8 +65,11 @@ class ConfigureLite extends React.Component {
       const { seed } = this.state
 
       try {
-        if (!this.props.authenticated[this.props.addCoinParams.mode])
-          this.props.dispatch(await authenticateActiveUser(seed));
+        if (!checkedAuth) {
+          const authCheck = await checkAuthentication(addCoinParams.mode)
+          const authenticated = authCheck.msg === API_SUCCESS && authCheck.result
+          if (!authenticated) await authenticateSeed(seed)
+        }
   
         const result = await addCoin(
           addCoinParams.coinObj,
@@ -106,7 +112,6 @@ class ConfigureLite extends React.Component {
 const mapStateToProps = (state) => {
   return {
     activeUser: state.users.activeUser,
-    authenticated: state.users.authenticated,
     activatedCoins: state.coins.activatedCoins
   };
 };

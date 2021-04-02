@@ -1,4 +1,4 @@
-import { saveUsers, loadUsers } from '../../../../util/api/users/userData'
+import { saveUsers, loadUsers, registerLogin } from '../../../../util/api/users/userData'
 import { encryptKey } from '../../../../util/api/users/pinData'
 import {
   SET_USERS,
@@ -13,7 +13,6 @@ import {
 import { ETH, ELECTRUM, UX_SELECTOR, POST_AUTH, NATIVE } from '../../../../util/constants/componentConstants'
 import { makeId } from '../../../../util/idGenerator'
 import { setMainNavigationPath } from '../../../actionCreators'
-import { authenticateSeed } from '../../../../util/api/users/userData'
 
 /**
  * Creates a new user object with default values
@@ -120,7 +119,9 @@ export const setUsers = async (usersObj) => {
  * has one set as default.
  * @param {Object} userObj The user object to log in
  */
-export const loginUser = (userObj) => {
+export const loginUser = async (userObj) => {
+  await registerLogin(userObj.id)
+
   return [{type: LOG_IN, userId: userObj.id}, setMainNavigationPath(`${POST_AUTH}/${UX_SELECTOR}`)]
 }
 
@@ -129,25 +130,6 @@ export const loginUser = (userObj) => {
  */
 export const logout = () => {
   return { type: LOG_OUT }
-}
-
-/**
- * Returns an action to authenticate the active
- * user based on a seed for both electrum and eth
- * modes. This allows them to add coins in those modes
- */
-export const authenticateActiveUser = async (seed) => {
-  try {
-    const authResult = await authenticateSeed(seed)
-
-    return {
-      type: SET_AUTHENTICATION,
-      [ETH]: authResult,
-      [ELECTRUM]: authResult
-    }
-  } catch (e) {
-    throw e
-  }
 }
 
 /**

@@ -1,7 +1,8 @@
 import {
-  shieldKey,
+  secretToken,
   agamaPort,
-  apiEncryption
+  apiEncryption,
+  pluginInfo
 } from '../../config';
 import fetchType from '../fetchType';
 import urlParams from '../url'
@@ -50,7 +51,8 @@ export const apiGet = (callPath, params) => {
     let urlParamsObj = {
       ...params,
       validity_key: token,
-      path: callPath,
+      app_id: pluginInfo.id,
+      builtin: pluginInfo.builtin,
       time
     }
 
@@ -92,13 +94,14 @@ export const apiPost = async (callPath, params, shield = apiEncryption) => {
       fetchType(
         JSON.stringify({
           validity_key: token,
-          path: callPath,
+          app_id: pluginInfo.id,
+          builtin: pluginInfo.builtin,
           encrypted: shield,
           time: time,
           payload:
             params == null
-              ? !shield ? {} : encrypt(JSON.stringify({}), shieldKey)
-              : !shield ? params : encrypt(JSON.stringify(params), shieldKey),
+              ? !shield ? {} : encrypt(JSON.stringify({}), secretToken)
+              : !shield ? params : encrypt(JSON.stringify(params), secretToken),
         })
       ).post
     )
@@ -106,7 +109,7 @@ export const apiPost = async (callPath, params, shield = apiEncryption) => {
         return response.json();
       })
       .then(async (data) => { 
-        if (shield) resolve(JSON.parse(decrypt(data.payload, shieldKey)));
+        if (shield) resolve(JSON.parse(decrypt(data.payload, secretToken)));
         else resolve(JSON.parse(data.payload))
       })
       .catch((e) => {

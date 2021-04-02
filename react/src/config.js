@@ -1,5 +1,5 @@
 let Config = {}
-let Secrets = {}
+let BuiltinSecret = ""
 
 try {
   Config = window.bridge.getConfigSync()
@@ -10,19 +10,18 @@ try {
 }
 
 try {
-  Secrets = window.bridge.getSecretsSync()
+  BuiltinSecret = window.bridge.getSecretSync().BuiltinSecret
 } catch(e) {
   console.error("Error loading api secrets!")
   console.error(e)
-  Secrets = {
-    appSecretToken: "",
-		apiShieldKey: ""
-  }
 }
 
 export const agamaPort = Config.general.main.agamaPort;
 export const apiEncryption = Config.general.main.encryptApiPost
-export const secretToken = Secrets.appSecretToken
-export const shieldKey = Secrets.apiShieldKey
+export const secretToken = BuiltinSecret
+export const pluginInfo = {
+  builtin: true,
+  id: "VERUS_DESKTOP_MAIN"
+}
 
 export default Config;
