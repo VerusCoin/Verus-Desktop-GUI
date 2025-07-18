@@ -82,7 +82,13 @@ export const SelectModeForm = function() {
   const isLite =
     availableModes[ETH] || availableModes[ELECTRUM] || availableModes[ERC20];
   const { selectedMode } = this.state
-
+  const bootstrapSupportedCoins = [
+      "VRSC",
+      "VRSCTEST",
+      "VARRR",
+      "VDEX",
+      "CHIPS"
+  ];
   return (
     <div className="d-sm-flex flex-column justify-content-sm-center">
       <div className="d-flex d-sm-flex justify-content-center align-items-center justify-content-sm-center align-items-sm-center">
@@ -259,7 +265,7 @@ export const SelectModeForm = function() {
                 </label>
               </div>
             </div>
-            {(this.state.chosenCoin.id === "VRSC" || this.state.chosenCoin.id === "VRSCTEST") && (
+            {(bootstrapSupportedCoins.includes(this.state.chosenCoin.id)) && (
               <div>
                 <div className="form-check d-flex align-items-center" style={{ padding: 0 }}>
                   <CustomCheckbox
