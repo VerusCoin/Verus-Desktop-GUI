@@ -40,7 +40,6 @@ import { MenuItem, Tooltip, Typography, Link } from "@material-ui/core";
 import CustomButton from "../../../../../containers/CustomButton/CustomButton";
 import MigrationHelper from "../../../../../containers/MigrationHelper/MigrationHelper";
 import { closeTextDialog, openIdentityCard, openSetupVaultModal, openTextDialog } from "../../../../../actions/actionDispatchers";
-import { claimRfoxMigration, estimateGasRfoxMigration, getRfoxMigrationAccountBalances } from "../../../../../util/api/wallet/walletCalls";
 import { checkFlag } from "../../../../../util/flagUtils";
 import { TIMELOCK_DELAY_FLAG } from "../../../../../util/constants/flags";
 const { shell } = window.bridge
@@ -164,33 +163,6 @@ export const CoinWalletRender = function() {
         this.props.activatedCoins[this.props.coin].options.tags.includes(IS_PBAAS)
           ? WalletRenderCurrencyFunctions.call(this)
           : null
-      }
-      {
-        /* TODO: Add a way to detect if a coin allows migration */ this.props.coin === "RFOX" && (
-          <MigrationHelper
-            coin={this.props.coin}
-            fetchMigrationBalance={getRfoxMigrationAccountBalances}
-            fetchFee={estimateGasRfoxMigration}
-            feeCurr={"ETH"}
-            migrate={claimRfoxMigration}
-            onSuccess={() =>
-              openTextDialog(
-                closeTextDialog,
-                [{ title: "OK", onClick: closeTextDialog }],
-                `${this.props.coin} claimed! It may take a few minutes to show in your wallet.`,
-                "Success!"
-              )
-            }
-            onError={(e) =>
-              openTextDialog(
-                closeTextDialog,
-                [{ title: "OK", onClick: closeTextDialog }],
-                `Error claiming ${this.props.coin}. (${e.message})`,
-                "Error"
-              )
-            }
-          />
-        )
       }
       {WalletRenderBalances.call(this)}
       <TransactionCard
