@@ -4,7 +4,7 @@
   "description": "Verus Desktop GUI Wallet",
   "main": "src/index.js",
   "scripts": {
-    "postinstall": "cd node_modules/react-terminal && yarn install && yarn run build && cd ..",
+    "postinstall": "patch-package && cd node_modules/react-terminal && yarn install && yarn run build && cd ..",
     "start": "./node_modules/webpack-dashboard/bin/webpack-dashboard.js -t 'AgamaGUI' -- ./node_modules/webpack-dev-server/bin/webpack-dev-server.js --colors --no-info --mode development",
     "start-no-dashboard": "./node_modules/webpack-dev-server/bin/webpack-dev-server.js --colors --no-info --mode development",
     "build": "rm -rf ./build && mkdir build && mkdir build/assets && cp -R src/assets build/ && NODE_ENV=\"production\" ./node_modules/.bin/webpack --mode production",
@@ -67,6 +67,7 @@
     "redux": "3.6.0",
     "redux-logger": "2.8.2",
     "redux-thunk": "2.2.0",
+    "sass": "1.92.0",
     "socket.io-client": "4.6.2",
     "static-eval": "2.0.2",
     "verus-typescript-primitives": "git+https://github.com/VerusCoin/verus-typescript-primitives.git",
@@ -107,7 +108,6 @@
     "jasmine-spec-reporter": "2.4.0",
     "jest": "24.9.0",
     "mini-css-extract-plugin": "1.6.2",
-    "node-sass": "9.0.0",
     "protractor": "5.4.0",
     "react-test-renderer": "16.13.1",
     "sass-loader": "10",
@@ -118,7 +118,8 @@
     "webpack": "4.44.1",
     "webpack-cli": "3.3.12",
     "webpack-dashboard": "3.3.1",
-    "webpack-dev-server": "3.11.3"
+    "webpack-dev-server": "3.11.3",
+    "patch-package": "8.0.0"
   },
   "resolutions": {
     "async": "2.6.4",
