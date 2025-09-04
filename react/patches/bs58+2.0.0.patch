@@ -1,0 +1,22 @@
+diff --git a/node_modules/bs58/lib/bs58.js b/node_modules/bs58/lib/bs58.js
+index b523a25..3257f6f 100644
+--- a/node_modules/bs58/lib/bs58.js
++++ b/node_modules/bs58/lib/bs58.js
+@@ -43,7 +43,7 @@ function encode(buffer) {
+ }
+ 
+ function decode(string) {
+-  if (string.length === 0) return []
++  if (string.length === 0) return Buffer.from([])
+ 
+   var i, j, bytes = [0]
+   for (i = 0; i < string.length; i++) {
+@@ -71,7 +71,7 @@ function decode(string) {
+   // deal with leading zeros
+   for (i = 0; string[i] === '1' && i < string.length - 1; i++) bytes.push(0)
+ 
+-  return bytes.reverse()
++  return Buffer.from(bytes.reverse())
+ }
+ 
+ module.exports = {
