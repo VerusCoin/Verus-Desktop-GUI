@@ -409,7 +409,7 @@ class CoinWallet extends React.Component {
                 ? this.NO_HEIGHT
                 : longestchain < blocks || longestchain === 0
                 ? 0
-                : Number(((blocks / longestchain) * 100).toFixed(2));
+                : Math.floor(((blocks / longestchain) * 10000) / 100 );
 
             walletLoadState = {
               ...walletLoadState,
