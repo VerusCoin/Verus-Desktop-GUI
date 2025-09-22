@@ -260,7 +260,7 @@ class CoinWallet extends React.Component {
           
           if (info) {
             const { connections, longestchain, blocks } = info
-            const percentage = longestchain < blocks ? 0 : Number(((blocks / longestchain) * 100).toFixed(2))
+            const percentage = longestchain < blocks ? 0 : Math.floor((blocks / longestchain) * 10000) / 100
             
 
             walletLoadState = {
