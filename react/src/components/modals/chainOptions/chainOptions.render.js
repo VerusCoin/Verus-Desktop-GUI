@@ -7,6 +7,14 @@ import {
 } from "../../../util/constants/componentConstants";
 
 export const ChainOptionsRender = function() {
+  const bootstrapSupportedCoins = [
+      "VRSC",
+      "VRSCTEST",
+      "VARRR",
+      "VDEX",
+      "CHIPS"
+  ];
+
   let options = [
     {
       title: "Reindex",
@@ -52,7 +60,7 @@ export const ChainOptionsRender = function() {
     }
   ];
 
-  if (this.props.activeCoin.id === "VRSC") {
+  if (bootstrapSupportedCoins.includes(this.props.activeCoin.id)) {
     options.push({
       title: "Bootstrap",
       onClick: () =>
