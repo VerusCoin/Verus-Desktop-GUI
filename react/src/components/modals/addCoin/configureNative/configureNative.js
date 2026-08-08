@@ -18,7 +18,7 @@ import {
 import { addCoin } from '../../../../actions/actionDispatchers'
 import { newSnackbar, setModalNavigationPath } from '../../../../actions/actionCreators'
 
-class ConfigureNative extends React.Component {
+export class ConfigureNative extends React.Component {
   constructor(props) {
     super(props);
 
@@ -38,7 +38,11 @@ class ConfigureNative extends React.Component {
       error: false,
     };
 
-    this.socket = io(`http://127.0.0.1:${this.props.config.general.main.agamaPort}`);
+    this.socket = io(
+      `http://127.0.0.1:${this.props.config.general.main.agamaPort}`,
+      { transports: ['websocket'] }
+    );
+    this.waitForSocketConnection = this.waitForSocketConnection.bind(this)
     this.initZcashParamsDl = this.initZcashParamsDl.bind(this)
     this.updateSocketsData = this.updateSocketsData.bind(this)
     this.calculateProgress = this.calculateProgress.bind(this)
@@ -55,16 +59,46 @@ class ConfigureNative extends React.Component {
       this.setState({ overallProgress: 100, passThrough: true })
       this.addCoin()
     } else {
-      this.initZcashParamsDl()
+      try {
+        await this.waitForSocketConnection()
+        this.initZcashParamsDl()
+      } catch (e) {
+        this._handleError(e.message)
+      }
     }
   }
 
   componentWillUnmount() {
-    this.socket.removeAllListeners(ZCPARAMS_SOCKET, msg => this.updateSocketsData(msg));
+    this.socket.removeAllListeners(ZCPARAMS_SOCKET);
+    this.socket.close();
+    this.props.setModalLock(false)
   }
 
-  componentWillUnmount() {
-    this.props.setModalLock(false)
+  waitForSocketConnection() {
+    if (this.socket.connected) return Promise.resolve()
+
+    return new Promise((resolve, reject) => {
+      let lastError
+      const cleanup = () => {
+        clearTimeout(timeout)
+        this.socket.off('connect', handleConnect)
+        this.socket.off('connect_error', handleConnectError)
+      }
+      const handleConnect = () => {
+        cleanup()
+        resolve()
+      }
+      const handleConnectError = error => {
+        lastError = error
+      }
+      const timeout = setTimeout(() => {
+        cleanup()
+        reject(lastError || new Error('Unable to connect to the download progress service'))
+      }, 10000)
+
+      this.socket.on('connect', handleConnect)
+      this.socket.on('connect_error', handleConnectError)
+    })
   }
 
   calculateProgress() {
@@ -172,35 +206,26 @@ class ConfigureNative extends React.Component {
   }
 
   updateSocketsData(data) {
-    const { updateProgressBar } = this.state
     if (data &&
         data.msg &&
         data.msg.type === 'zcpdownload') {
       const _msg = data.msg;
 
-      if (_msg.status === 'progress' &&
-          _msg.progress) {
-        this.setState(Object.assign({}, this.state, {
-          updateProgressPatch: _msg.progress,
-        }));
-        updateProgressBar[_msg.file] = _msg.progress;
-      } else {
-        if ((_msg.status === 'progress' || _msg.status === 'done') && _msg.file !== 'all') {
-          this.setState({
-            updateProgressBar: {
-              ...this.state.updateProgressBar,
-              [_msg.file]: _msg.progress
-            }
-          }, () => {
-            this.calculateProgress()
-          })
-        } else if (_msg.status === 'done' && _msg.file === 'all') {
-          this.setState({ overallProgress: 100 }, () => {
-            this.addCoin()
-          })
-        } else if (_msg.status === 'error') {
-          this.setState({ done: true, overallProgress: 0, error: _msg.message })
-        }
+      if ((_msg.status === 'progress' || _msg.status === 'done') && _msg.file !== 'all') {
+        if (!Number.isFinite(_msg.progress)) return
+
+        this.setState(prevState => ({
+          updateProgressBar: {
+            ...prevState.updateProgressBar,
+            [_msg.file]: _msg.progress
+          }
+        }), this.calculateProgress)
+      } else if (_msg.status === 'done' && _msg.file === 'all') {
+        this.setState({ overallProgress: 100 }, () => {
+          this.addCoin()
+        })
+      } else if (_msg.status === 'error') {
+        this.setState({ done: true, overallProgress: 0, error: _msg.message })
       }
     }
   }
