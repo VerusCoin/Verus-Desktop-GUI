@@ -1,9 +1,9 @@
 import React from 'react';
-import { document } from 'global';
 import { connect } from 'react-redux';
 import {
   BridgekeeperRender
 } from './bridgekeeper.render';
+import { appendBridgekeeperLogEntry } from './bridgekeeper.log';
 import {
   ENTER_DATA,
   STARTBRIDGEKEEPER
@@ -72,20 +72,9 @@ class Bridgekeeper extends React.Component {
   }
 
   updateLog(text) {
-
-    const sometext = text;
-    var logger = document.getElementById('log');
-    const info = function () {
-      for (var i = 0; i < arguments.length; i++) {
-        if (typeof arguments[i] == 'object') {
-          logger.innerHTML += (JSON && JSON.stringify ? JSON.stringify(arguments[i], undefined, 2) : arguments[i]) + '<br />';
-        } else {
-          logger.innerHTML += arguments[i] + '<br />';
-        }
-      }
-    }
-    info(sometext);
-
+    this.setState((state) => ({
+      logData: appendBridgekeeperLogEntry(state.logData, text)
+    }));
   }
 
   updateInput(e, value = false) {

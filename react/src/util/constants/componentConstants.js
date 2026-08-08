@@ -375,6 +375,7 @@ export const SEND_RESULT = 2
 export const ERROR_INVALID_ADDR = 'Invalid address'
 export const ERROR_INVALID_AMOUNT = 'Invalid send amount'
 export const ERROR_INVALID_FROM = 'Invalid from address'
+export const ERROR_BALANCE_UNAVAILABLE = 'Balance is currently unavailable. Please wait for it to refresh.'
 export const ERROR_AMOUNT_MORE_THAN_BALANCE = 'Amount is more than available balance.'
 export const ERROR_Z_AND_NO_FROM = 'Sending a Z transaction requires a from address.'
 export const ERROR_Z_NOT_SUPPORTED = 'Private transactions are not supported in this mode.'
