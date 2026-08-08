@@ -11,6 +11,7 @@ import {
   TRANSPARENT_FUNDS,
   ERROR_INVALID_AMOUNT,
   ERROR_AMOUNT_MORE_THAN_BALANCE,
+  ERROR_BALANCE_UNAVAILABLE,
   ERROR_INVALID_ADDR,
   ERROR_Z_AND_NO_FROM,
   SEND_COIN,
@@ -43,6 +44,7 @@ import {
 import { newSnackbar } from '../../../../actions/actionCreators';
 import { checkFlag } from '../../../../util/flagUtils';
 import { IS_GATEWAY_FLAG } from '../../../../util/constants/flags';
+import { getSendBalance } from './balanceUtils';
 
 class TraditionalSendForm extends React.Component {
   constructor(props) {
@@ -171,23 +173,17 @@ class TraditionalSendForm extends React.Component {
   }
 
   getBalance(address, currency) {
-    const { balances, chainTicker } = this.props
+    const { activeCoin, balances, chainTicker } = this.props
     const { addressMap } = this.state 
 
-    if (currency == null) currency = chainTicker
-
-    if (balances == null) return null
-    else if (address == null) {
-      return currency === chainTicker ? balances.native.public.confirmed : (balances.reserve[currency] ? balances.reserve[currency].public.confirmed : 0)
-    } else {
-      const addr = addressMap[address]
-
-      return currency === chainTicker
-        ? addr.balances.native
-        : addr.balances.reserve[currency]
-        ? addr.balances.reserve[currency]
-        : 0;
-    }
+    return getSendBalance({
+      address,
+      addressMap,
+      balances,
+      chainTicker,
+      currency,
+      useAggregateForMissingAddress: activeCoin && activeCoin.mode !== NATIVE,
+    });
   }
 
   generateWarningSnack(warnings) {    
@@ -195,12 +191,12 @@ class TraditionalSendForm extends React.Component {
   }
 
   setSendAmountAll() {
-    this.setAndUpdateState({
-      amount: this.getBalance(
-        this.state.sendFrom.address,
-        this.state.displayCurrency
-      ),
-    });
+    const balance = this.getBalance(
+      this.state.sendFrom && this.state.sendFrom.address,
+      this.state.displayCurrency
+    );
+
+    if (balance != null) this.setAndUpdateState({ amount: balance });
   }
 
   generateTxDataDisplay() {
@@ -299,7 +295,15 @@ class TraditionalSendForm extends React.Component {
 
     if (amount == null || (amount.length !== 0 && (isNaN(amount) || Number(amount) < 0 || amount.length === 0))) {
       formErrors.amount.push(ERROR_INVALID_AMOUNT)
-    } else if (sendFrom.balance < amount) {
+    } else if (
+      amount.length !== 0 &&
+      this.getBalance(sendFrom && sendFrom.address, this.state.displayCurrency) == null
+    ) {
+      formErrors.amount.push(ERROR_BALANCE_UNAVAILABLE)
+    } else if (
+      Number(this.getBalance(sendFrom && sendFrom.address, this.state.displayCurrency)) <
+      Number(amount)
+    ) {
       formErrors.amount.push(ERROR_AMOUNT_MORE_THAN_BALANCE)
     }
 
