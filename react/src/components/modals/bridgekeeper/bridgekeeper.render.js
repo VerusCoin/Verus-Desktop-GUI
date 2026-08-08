@@ -9,6 +9,12 @@ import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import Drag from '@material-ui/icons/AddCircle';
 
+export const BridgekeeperLog = ({ logData }) => (
+  <pre className="prettyprint" id="log">
+    {logData}
+  </pre>
+);
+
 export const BridgekeeperRender = function () {
   const { startBridgekeeper, getBridgekeeperInfo, state, back, props, updateInput, setConfFile, openInfura } =
     this;
@@ -94,9 +100,7 @@ export const BridgekeeperRender = function () {
           {"show logs."}
         </Button>
       </div>
-      <pre class="prettyprint" id="log">
-        {logData}
-      </pre>
+      <BridgekeeperLog logData={logData} />
     </div>
   );
 };
