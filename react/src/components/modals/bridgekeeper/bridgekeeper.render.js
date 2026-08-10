@@ -16,10 +16,15 @@ export const BridgekeeperLog = ({ logData }) => (
 );
 
 export const BridgekeeperRender = function () {
-  const { startBridgekeeper, getBridgekeeperInfo, state, back, props, updateInput, setConfFile, openInfura } =
+  const { getBridgekeeperInfo, state, updateInput, setConfFile, openInfura } =
     this;
-  const { loading, continueDisabled, formStep, txData, logData, infuraNode, bridgeKeeperActive } = state;
-  const { closeModal } = props;
+  const {
+    loading,
+    logData,
+    infuraNode,
+    bridgeKeeperActive,
+    bridgeKeeperStatusAvailable
+  } = state;
 
   return (
     <div style={{ width: "100%", paddingLeft: 35, paddingRight: 35 }}>
@@ -29,7 +34,15 @@ export const BridgekeeperRender = function () {
         variant="outlined"
         name="status"
         contentEditable={false}
-        value={bridgeKeeperActive ? "Running" : "Not Running"}
+        value={
+          loading && !bridgeKeeperStatusAvailable
+            ? "Loading..."
+            : !bridgeKeeperStatusAvailable
+              ? "Unavailable"
+              : bridgeKeeperActive
+                ? "Running"
+                : "Not Running"
+        }
         style={{ marginTop: 10, width: "100%" }}
         InputProps={{
           endAdornment: <InputAdornment position="end">
@@ -38,7 +51,7 @@ export const BridgekeeperRender = function () {
               edge="end"
               disabled={true}
             >
-              {bridgeKeeperActive ? <div
+              {bridgeKeeperStatusAvailable && bridgeKeeperActive ? <div
                 style={{
                   width: "20px",
                   height: "20px",
@@ -49,7 +62,7 @@ export const BridgekeeperRender = function () {
                 style={{
                   width: "20px",
                   height: "20px",
-                  backgroundColor: "red",
+                  backgroundColor: bridgeKeeperStatusAvailable ? "red" : "gray",
                   borderRadius: "50%",
                 }}
               ></div>}
@@ -82,7 +95,7 @@ export const BridgekeeperRender = function () {
         <Button
           variant="outlined"
           onClick={setConfFile}
-          disabled={false}
+          disabled={loading}
           size="large"
           color="primary"
           style={{ marginTop: 10 }}
@@ -92,7 +105,7 @@ export const BridgekeeperRender = function () {
         <Button
           variant="outlined"
           onClick={getBridgekeeperInfo}
-          disabled={false}
+          disabled={loading}
           size="large"
           color="primary"
           style={{ marginTop: 10 }}
