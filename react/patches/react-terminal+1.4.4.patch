@@ -1,0 +1,6 @@
+diff --git a/node_modules/react-terminal/src/styles/fonts.scss b/node_modules/react-terminal/src/styles/fonts.scss
+index 1aa221c..e69de29 100644
+--- a/node_modules/react-terminal/src/styles/fonts.scss
++++ b/node_modules/react-terminal/src/styles/fonts.scss
+@@ -1 +0,0 @@
+-@import url("https://fonts.googleapis.com/css?family=Source+Code+Pro&display=swap");
