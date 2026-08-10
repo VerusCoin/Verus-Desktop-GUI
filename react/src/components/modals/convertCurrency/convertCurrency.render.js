@@ -1,8 +1,7 @@
 import React from 'react';
 import { CONVERSION_OVERVIEW } from '../../../util/constants/componentConstants';
 import ConvertCurrencyForm from './convertCurrencyForm/convertCurrencyForm'
-import * as animationData from '../../../assets/animations/radar.json'
-import { Lottie } from '@crello/react-lottie';
+import CircularProgress from '@material-ui/core/CircularProgress';
 import ConversionOverview from './conversionOverview/conversionOverview';
 
 export const ConvertCurrencyRender = function() {
@@ -41,12 +40,11 @@ export const ConvertCurrencyRender = function() {
             color: "white",
           }}
         >
-          <Lottie
-            config={{ animationData: animationData.default, loop: true }}
-            height="40%"
+          <CircularProgress
+            size={96}
             style={{
-              marginBottom: -56,
-              marginTop: -56,
+              color: "white",
+              marginBottom: 24,
             }}
           />
           {this.state.loadingText}

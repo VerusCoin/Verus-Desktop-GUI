@@ -3,7 +3,7 @@ const path = require('path');
 
 const DashboardPlugin = require('webpack-dashboard/plugin');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const UglifyJSPlugin = require('uglifyjs-webpack-plugin');
+const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 
 const nodeEnv = process.env.NODE_ENV || 'development';
@@ -43,6 +43,9 @@ const plugins = [
     template: path.join(wwwPath, 'index.html'),
     path: buildPath,
     filename: 'index.html',
+    templateParameters: {
+      isProduction,
+    },
   }),
   new MiniCssExtractPlugin({
     filename: 'style.css',
@@ -103,8 +106,6 @@ if (isProduction) {
   // Development rules
   rules.push(
     {
-      test: /\.scss$/,
-      exclude: /node_modules/,
       test: /\.(sa|sc|c)ss$/,
       use: [
         'style-loader',
@@ -116,7 +117,9 @@ if (isProduction) {
 }
 
 module.exports = {
-  devtool: isProduction ? 'eval' : 'source-map',
+  // Production bundles must be compatible with a CSP that disallows eval.
+  // Development retains full source maps for local debugging.
+  devtool: isProduction ? false : 'source-map',
   context: jsSourcePath,
   entry: {
     js: ['@babel/polyfill', './index.js'],
@@ -130,6 +133,18 @@ module.exports = {
     rules,
   },
   resolve: {
+    alias: {
+      // The light player omits Lottie's expression evaluator. Shipped
+      // animations are static assets and must never execute expressions.
+      'lottie-web$': path.resolve(
+        __dirname,
+        'node_modules/lottie-web/build/player/lottie_light.js',
+      ),
+      // ASN.1 attempts to use Node's vm module only to create named
+      // constructors and already falls back when that is unavailable.
+      // Keep a browser vm evaluator out of the privileged renderer bundle.
+      'vm$': path.resolve(jsSourcePath, 'util/security/noVm.js'),
+    },
     extensions: ['.webpack-loader.js', '.web-loader.js', '.loader.js', '.js', '.jsx'],
     modules: [
       path.resolve(__dirname, 'node_modules'),
@@ -162,9 +177,9 @@ module.exports = {
   },
   optimization: {
     minimizer: [
-      new UglifyJSPlugin({
-        sourceMap: true,
-        uglifyOptions: {
+      new TerserPlugin({
+        sourceMap: !isProduction,
+        terserOptions: {
           warnings: false,
           compress: {
             ie8: false,

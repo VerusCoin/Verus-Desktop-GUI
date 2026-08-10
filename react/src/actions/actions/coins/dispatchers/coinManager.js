@@ -85,7 +85,7 @@ export const restartCoinInPlace = async (
   dispatch
 ) => {
   let daemonResult;
-  try {
+  const restartLifecycle = () => {
     clearAllCoinIntervals(coinObj.id);
     dispatch({
       type: CLEAR_COIN_DATA,
@@ -93,6 +93,10 @@ export const restartCoinInPlace = async (
     });
     dispatch(setCoinStatus(coinObj.id, PRE_DATA));
 
+    activateChainLifecycle(mode, coinObj.id);
+  };
+
+  try {
     daemonResult = await restartCoin(
       coinObj.id,
       mode,
@@ -104,9 +108,21 @@ export const restartCoinInPlace = async (
       ],
       coinObj.options
     );
-    if (daemonResult.msg === "error") throw new Error(daemonResult.result);
+    if (daemonResult.msg === "error") {
+      // Authorization/validation failures happen before the daemon is touched
+      // and must preserve the current view. Once the backend confirms that
+      // shutdown began, however, the old intervals and data are stale even if
+      // polling or relaunch subsequently failed.
+      if (
+        daemonResult.restartState != null &&
+        daemonResult.restartState.daemonStopInitiated === true
+      ) {
+        restartLifecycle();
+      }
+      throw new Error(daemonResult.result);
+    }
 
-    activateChainLifecycle(mode, coinObj.id);
+    restartLifecycle();
     return true;
   } catch (e) {
     throw e;
