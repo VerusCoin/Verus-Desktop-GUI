@@ -39,7 +39,7 @@ export const SettingsRender = function() {
           className="btn btn-primary"
           type="button"
           onClick={ this.saveChanges }
-          disabled = { !loading && displayConfig == config && displayUser == activeUser }
+          disabled = { loading || (displayConfig === config && displayUser === activeUser) }
           style={{
             fontSize: 14,
             backgroundColor: "rgb(74, 166, 88)",
@@ -49,7 +49,7 @@ export const SettingsRender = function() {
             paddingLeft: 20,
             marginBottom: 16
           }}>
-          {"Save Changes"}
+          {loading ? "Saving..." : "Save Changes"}
         </button>
         { this.props.mainPathArray[3] === COIN_SETTINGS &&
           <select
@@ -105,4 +105,3 @@ export const SettingsCardRender = function(settingsType) {
 export const SettingsTabsRender = function() {
   return []
 }
-

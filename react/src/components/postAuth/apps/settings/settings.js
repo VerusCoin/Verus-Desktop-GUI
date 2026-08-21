@@ -14,7 +14,7 @@ import {
   MID_LENGTH_ALERT,
   NATIVE
 } from "../../../../util/constants/componentConstants";
-import { setMainNavigationPath, initConfig, initUsers, loginUser, newSnackbar } from '../../../../actions/actionCreators';
+import { setMainNavigationPath, initConfig, initUsers, newSnackbar } from '../../../../actions/actionCreators';
 import { getPathParent } from '../../../../util/navigationUtils';
 import { saveConfig } from '../../../../util/api/settings/configData';
 import { saveUsers } from '../../../../util/api/users/userData';
@@ -23,7 +23,20 @@ import { getSimpleCoinArray, getCoinObj } from '../../../../util/coinData';
 //TODO: Re-add coin settings when needed
 const SETTINGS_TYPES = [PROFILE_SETTINGS, GENERAL_SETTINGS, COIN_SETTINGS]
 
-class Settings extends React.Component {
+const nativeAuthorizationSetting = (config) =>
+  config && config.general && config.general.main
+    ? config.general.main.requireNativeAuthForIrreversibleActions
+    : undefined
+
+const errorMessage = (error) =>
+  error && error.message ? error.message : String(error)
+
+const errorSentence = (error) => {
+  const message = errorMessage(error)
+  return /[.!?]$/.test(message) ? message : `${message}.`
+}
+
+export class Settings extends React.Component {
   constructor(props) {
     super(props);
     const activeNativeCoinArray = Object.values(props.activeCoins).filter(coin => coin.mode === NATIVE)  
@@ -105,45 +118,97 @@ class Settings extends React.Component {
     this.props.dispatch(setMainNavigationPath(`${getPathParent(this.props.mainPathArray)}/${settingsType}`))
   }
 
-  saveChanges() {
+  async saveChanges() {
+    if (this.state.loading) return false
+
     const { displayConfig, displayUser } = this.state
     const { loadedUsers, dispatch, config, activeUser } = this.props
-    let error = false
+    const configChanged = displayConfig !== config
+    const userChanged = displayUser !== activeUser
+    const authorizationSettingChanged =
+      nativeAuthorizationSetting(displayConfig) !== nativeAuthorizationSetting(config)
 
-    this.setState({ loading: true }, async () => {
-      try {
+    if (!configChanged && !userChanged) return true
+
+    this.setState({ loading: true })
+
+    let configSaved = false
+    let userSaved = false
+    let saveError = null
+    let refreshError = null
+
+    try {
+      if (configChanged) {
         await saveConfig(displayConfig)
-        await saveUsers({ ...loadedUsers, [displayUser.id]: displayUser})
-      } catch (e) {
-        console.error(e)
-        error = true
-        dispatch(newSnackbar(ERROR_SNACK, "Error saving settings data to file."))
+        configSaved = true
       }
 
+      if (userChanged) {
+        await saveUsers({ ...loadedUsers, [displayUser.id]: displayUser})
+        userSaved = true
+      }
+    } catch (e) {
+      console.error(e)
+      saveError = e
+    }
+
+    try {
       // Re fetch data from config and user file to ensure everything made sense
       // and was saved correctly and to prevent user from being surprised if
       // config isnt what they intended it to be
-      Promise.all([initUsers(), initConfig()])
-      .then((actionArray) => {
-        const userAction = actionArray[0]
-        const configActionArr = actionArray[1]
-        
-        dispatch(userAction)
-        configActionArr.map(configAction => {
-          dispatch(configAction)
-        })
-      })
-      .catch(e => {
-        console.error(e)
-        error = true
-        dispatch(newSnackbar(ERROR_SNACK, "Error saving settings data to file."))
-      })
+      const actionArray = await Promise.all([initUsers(), initConfig()])
+      const userAction = actionArray[0]
+      const configActionArr = actionArray[1]
 
-      if (!error) {
-        this.setState({ loading: false })
-        dispatch(newSnackbar(SUCCESS_SNACK, "Settings saved succesfully! Restart for them to take effect.", MID_LENGTH_ALERT))
+      dispatch(userAction)
+      configActionArr.forEach(configAction => {
+        dispatch(configAction)
+      })
+    } catch (e) {
+      console.error(e)
+      refreshError = e
+    } finally {
+      this.setState({ loading: false })
+    }
+
+    if (saveError) {
+      const partialSave = configSaved && userChanged && !userSaved
+      const prefix = partialSave
+        ? "Configuration was saved, but profile settings were not saved"
+        : "Unable to save settings"
+      let message = `${prefix}: ${errorSentence(saveError)}`
+
+      if (refreshError) {
+        message += ` Saved values could not be reloaded: ${errorSentence(refreshError)}`
       }
-    })
+      if (authorizationSettingChanged && configSaved) {
+        message += " The OS verification preference is already in effect."
+      }
+
+      dispatch(newSnackbar(ERROR_SNACK, message, MID_LENGTH_ALERT))
+      return false
+    }
+
+    if (refreshError) {
+      const immediateEffectNotice = authorizationSettingChanged
+        ? " The OS verification preference is already in effect."
+        : ""
+      dispatch(
+        newSnackbar(
+          ERROR_SNACK,
+          `Settings were saved, but the saved values could not be reloaded: ${errorSentence(refreshError)}${immediateEffectNotice}`,
+          MID_LENGTH_ALERT
+        )
+      )
+      return false
+    }
+
+    const successMessage = authorizationSettingChanged
+      ? "Settings saved successfully. The OS verification preference takes effect immediately; restart Verus Desktop for any other settings that require it."
+      : "Settings saved successfully. Restart Verus Desktop for settings that require it."
+
+    dispatch(newSnackbar(SUCCESS_SNACK, successMessage, MID_LENGTH_ALERT))
+    return true
   }
 
   setCards() {
