@@ -23,6 +23,20 @@ const SERVER_OFF = 0;
 const SERVER_OK = 1;
 const SERVER_RPC_FAULT = 2;
 const SERVER_WEBSOCKET_FAULT = 3;
+
+export const getBridgekeeperControlState = (miningInfo, loading) => {
+  const status = miningInfo && miningInfo.bridgekeeperstatus
+  const statusAvailable =
+    status != null && Number.isInteger(status.serverrunning)
+
+  return {
+    disabled: loading === true || !statusAvailable,
+    hasError: statusAvailable && status.serverrunning > SERVER_OK,
+    running: statusAvailable && status.serverrunning > SERVER_OFF,
+    statusAvailable
+  }
+}
+
 export const MiningWalletRender = function() {
   const {
     miningState,
@@ -187,6 +201,7 @@ export const MiningWalletFunctions = function() {
   } = props;
 
   const coinAddresses = addresses
+  const bridgekeeperControl = getBridgekeeperControlState(miningInfo, loading)
 
   const coresArr = Array.apply(
     null,
@@ -314,7 +329,7 @@ export const MiningWalletFunctions = function() {
           }}
         >
             <h6 className="card-title" style={{ fontSize: 14, margin: 0, width: "max-content" }}>
-              {"Bridgekeeper"}{(miningInfo?.bridgekeeperstatus?.serverrunning) > SERVER_OK &&<ErrorIcon style={{ color: "red" }}></ErrorIcon>}
+              {"Bridgekeeper"}{bridgekeeperControl.hasError && <ErrorIcon style={{ color: "red" }}></ErrorIcon>}
             </h6>
             <h8 className="card-title" style={{ fontSize: 10, margin: 0, width: "max-content" }}>
               {"(Requires mining or staking to be active)"}
@@ -323,8 +338,9 @@ export const MiningWalletFunctions = function() {
           </div>
           <div style={{ color: `rgb(49, 101, 212)` }}>
             <Switch
-              checked={(miningInfo?.bridgekeeperstatus?.serverrunning) > SERVER_OFF}
+              checked={bridgekeeperControl.running}
               onChange={() => toggleBridging(coin)}
+              disabled={bridgekeeperControl.disabled}
               value="bridging"
               color="primary"
             />

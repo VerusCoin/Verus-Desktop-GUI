@@ -35,6 +35,7 @@ class Wallet extends React.Component {
     this.closeDeactivateDialog = this.closeDeactivateDialog.bind(this)
     this.openDeactivateDialog = this.openDeactivateDialog.bind(this)
     this.setTabs()
+    this.setCards(this.props.activatedCoins)
   }
 
   closeDeactivateDialog() {

@@ -3,7 +3,7 @@ import { connect } from 'react-redux';
 import { 
   UxSelectorRender,
 } from './uxSelector.render';
-import { setMainNavigationPath, getPathParent } from '../../../actions/actionCreators'
+import { setMainNavigationPath, newSnackbar } from '../../../actions/actionCreators'
 import { activateCoin } from '../../../actions/actionDispatchers'
 
 import {
@@ -19,18 +19,40 @@ import {
   MINING_POSTFIX,
   MINING,
   API_SUCCESS,
+  ERROR_SNACK,
+  MID_LENGTH_ALERT,
   PBAAS_POSTFIX,
   MULTIVERSE
 } from "../../../util/constants/componentConstants";
 import { checkAuthentication } from '../../../util/api/users/userData';
 
-class UxSelector extends React.Component {
+export const parseIdentityNavigationSegment = (segment) => {
+  if (typeof segment !== "string") return null
+
+  const parts = segment.split(FIX_CHARACTER)
+  if (
+    parts.length !== 3 ||
+    !/^(0|[1-9][0-9]*)$/.test(parts[0]) ||
+    parts[1].length === 0 ||
+    parts[2] !== ID_POSTFIX
+  ) {
+    return null
+  }
+
+  return {
+    identityIndex: Number(parts[0]),
+    chainTicker: parts[1]
+  }
+}
+
+export class UxSelector extends React.Component {
   constructor(props) {
     super(props);
 
     this.state = {
       loading: false
     }
+    this.selecting = false
 
     this.selectUx = this.selectUx.bind(this)
   }
@@ -44,51 +66,110 @@ class UxSelector extends React.Component {
   }
 
   async selectUx(navLocation) {
-    this.setState({ loading: true }, async () => {
-      const { activatedCoins, dispatch, activeUser, identities } = this.props
+    if (this.selecting) return false
 
-      Object.values(activeUser.startCoins).map(async (coinObj) => {
-        let authCheck;
-        let authenticated = false;
+    this.selecting = true
 
-        if (coinObj.mode !== NATIVE) {
-          authCheck = await checkAuthentication(coinObj.mode)
-          authenticated = authCheck && authCheck.msg === API_SUCCESS && authCheck.result
+    const { dispatch } = this.props
+    const resetSelection = () => {
+      this.selecting = false
+      this.setState({ loading: false })
+    }
+    const navigate = (path) => {
+      resetSelection()
+      dispatch(setMainNavigationPath(path))
+      return true
+    }
+
+    try {
+      this.setState({ loading: true })
+
+      if (typeof navLocation !== "string" || navLocation.length === 0) {
+        throw new Error("The saved navigation location is invalid.")
+      }
+
+      const { activatedCoins, activeUser, identities } = this.props
+      const activeCoinTickers = new Set(Object.keys(activatedCoins || {}))
+      const activatedDuringSelection = new Set()
+      const startCoins = activeUser.startCoins || {}
+
+      for (const coinObj of Object.values(startCoins)) {
+        try {
+          let authCheck;
+          let authenticated = false;
+
+          if (coinObj.mode !== NATIVE) {
+            authCheck = await checkAuthentication(coinObj.mode)
+            authenticated = authCheck && authCheck.msg === API_SUCCESS && authCheck.result
+          }
+
+          if (coinObj.mode === NATIVE || authenticated) {
+            const modeStartupOptions =
+              activeUser.startupOptions && activeUser.startupOptions[coinObj.mode]
+                ? activeUser.startupOptions[coinObj.mode]
+                : {}
+
+            if (await activateCoin(
+              coinObj,
+              coinObj.mode,
+              modeStartupOptions[coinObj.id] != null
+                ? modeStartupOptions[coinObj.id]
+                : [],
+              dispatch
+            )) {
+              activeCoinTickers.add(coinObj.id)
+              activatedDuringSelection.add(coinObj.id)
+            }
+          }
+        } catch (e) {
+          dispatch(
+            newSnackbar(
+              ERROR_SNACK,
+              `Unable to activate ${coinObj.id}: ${e.message}`,
+              MID_LENGTH_ALERT
+            )
+          )
         }
+      }
 
-        if (coinObj.mode === NATIVE || authenticated) {
-           await activateCoin(
-            coinObj,
-            coinObj.mode,
-            activeUser.startupOptions[coinObj.mode][coinObj.id] != null
-              ? activeUser.startupOptions[coinObj.mode][coinObj.id]
-              : [],
-            dispatch
-          );
-        }
-      })
-  
-      // TODO: Investigate why this isnt working, if navigation is in coin wallet it 
-      // will always go back to dashboard
       if (navLocation.includes(`${FIX_CHARACTER}${CHAIN_POSTFIX}`)) {
         const coinWalletName = navLocation.split('/').filter(value => {
           return value.includes(`${FIX_CHARACTER}${CHAIN_POSTFIX}`)
         })
-        
-        if (!activatedCoins[coinWalletName[0]]) {
-          dispatch(setMainNavigationPath(`${POST_AUTH}/${APPS}/${WALLET}`))
-          return
+        const chainTicker = coinWalletName[0].split(FIX_CHARACTER)[0]
+
+        if (!activeCoinTickers.has(chainTicker)) {
+          return navigate(`${POST_AUTH}/${APPS}/${WALLET}`)
         }
-      } 
+      }
 
       if (navLocation.includes(`${FIX_CHARACTER}${ID_POSTFIX}`)) {
-        const identityWalletName = navLocation.split('/').filter(value => {
+        const pathSegments = navLocation.split('/').filter(value => value.length > 0)
+        const identitySegments = pathSegments.filter(value => {
           return value.includes(`${FIX_CHARACTER}${ID_POSTFIX}`)
         })
-        
-        if (!identities[identityWalletName[1]] || !identities[identityWalletName[1]][[Number(identityWalletName[0])]]) {
-          dispatch(setMainNavigationPath(`${POST_AUTH}/${APPS}/${VERUSID}`))
-          return
+        const identityLocation =
+          identitySegments.length === 1 &&
+          pathSegments[pathSegments.length - 1] === identitySegments[0]
+            ? parseIdentityNavigationSegment(identitySegments[0])
+            : null
+
+        if (identityLocation == null) {
+          return navigate(`${POST_AUTH}/${APPS}/${VERUSID}`)
+        }
+
+        const { chainTicker, identityIndex } = identityLocation
+        const chainIdentities = identities && identities[chainTicker]
+        const identityDataLoaded = Array.isArray(chainIdentities)
+        const waitingForIdentityRefresh =
+          activatedDuringSelection.has(chainTicker) &&
+          (!identityDataLoaded || chainIdentities[identityIndex] == null)
+
+        if (
+          !waitingForIdentityRefresh &&
+          (!identityDataLoaded || chainIdentities[identityIndex] == null)
+        ) {
+          return navigate(`${POST_AUTH}/${APPS}/${VERUSID}`)
         }
       }
 
@@ -96,10 +177,10 @@ class UxSelector extends React.Component {
         const miningWalletName = navLocation.split('/').filter(value => {
           return value.includes(`${FIX_CHARACTER}${MINING_POSTFIX}`)
         })
-        
-        if (!activatedCoins[miningWalletName[0]]) {
-          dispatch(setMainNavigationPath(`${POST_AUTH}/${APPS}/${MINING}`))
-          return
+        const chainTicker = miningWalletName[0].split(FIX_CHARACTER)[0]
+
+        if (!activeCoinTickers.has(chainTicker)) {
+          return navigate(`${POST_AUTH}/${APPS}/${MINING}`)
         }
       }
 
@@ -107,17 +188,26 @@ class UxSelector extends React.Component {
         const pbaasChainName = navLocation.split('/').filter(value => {
           return value.includes(`${FIX_CHARACTER}${PBAAS_POSTFIX}`)
         })
-        
-        if (!activatedCoins[pbaasChainName[0]]) {
-          dispatch(setMainNavigationPath(`${POST_AUTH}/${APPS}/${MULTIVERSE}`))
-          return
+        const chainTicker = pbaasChainName[0].split(FIX_CHARACTER)[0]
+
+        if (!activeCoinTickers.has(chainTicker)) {
+          return navigate(`${POST_AUTH}/${APPS}/${MULTIVERSE}`)
         }
       }
-  
-      dispatch(setMainNavigationPath(navLocation))
-      return
-    })
-    
+
+      return navigate(navLocation)
+    } catch (e) {
+      dispatch(
+        newSnackbar(
+          ERROR_SNACK,
+          `Unable to restore the saved location: ${e.message}`,
+          MID_LENGTH_ALERT
+        )
+      )
+      return navigate(`${POST_AUTH}/${UX_SELECTOR}`)
+    } finally {
+      if (this.selecting) resetSelection()
+    }
   }
 
   render() {

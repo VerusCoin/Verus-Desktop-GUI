@@ -1,5 +1,8 @@
 import React from 'react';
 import { render } from 'react-dom';
+import '@fontsource/source-code-pro/latin.css';
+import '@fontsource/source-sans-pro/latin.css';
+import '@fontsource/source-sans-pro/latin-italic.css';
 import {
   Router,
   Route,

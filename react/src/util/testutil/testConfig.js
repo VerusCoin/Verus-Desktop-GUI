@@ -27,6 +27,7 @@ export const testConfig = {
   fiatRates: true,
   loadCoinsFromStorage: false,
   requirePinToConfirmTx: false,
+  requireNativeAuthForIrreversibleActions: true,
   electrum: {
     maxVinParseLimit: 120,
     cache: false,

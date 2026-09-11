@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui">
     <meta name="description" content="Verus Desktop">
     <meta name="author" content="Michael Filip Toutonghi">
+    <% if (isProduction) { %>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http://127.0.0.1:* ws://127.0.0.1:*; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; child-src 'none'; worker-src 'none'; media-src 'none'; manifest-src 'self'">
+    <% } %>
     <title>Verus Desktop</title>
     <link rel="apple-touch-icon" href="assets/images/android-chrome-192x192.png">
     <link rel="icon" type="image/png" href="assets/images/favicon-32x32.png" sizes="32x32">

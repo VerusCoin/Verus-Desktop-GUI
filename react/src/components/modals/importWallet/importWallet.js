@@ -7,7 +7,7 @@ import { importWallet } from '../../../util/api/wallet/walletCalls';
 import { newSnackbar } from '../../../actions/actionCreators';
 import { ERROR_SNACK, MID_LENGTH_ALERT, SUCCESS_SNACK, WALLET_IMPORT } from '../../../util/constants/componentConstants';
 
-class ImportWallet extends React.Component {
+export class ImportWallet extends React.Component {
   constructor(props) {
     super(props);
     props.setModalHeader("Import Wallet Backup")
@@ -25,30 +25,31 @@ class ImportWallet extends React.Component {
     this.setState({ filename: event.target.files.length > 0 ? event.target.files[0].path : "" });
   }
 
-  importWallet() {
+  async importWallet() {
+    if (this.state.loading) return false
+
     this.props.setModalLock(true)
+    this.setState({ loading: true })
 
-    this.setState({ loading: true }, async () => {
-      try {
-        const res = await importWallet(this.props.mode, this.props.chainTicker, this.state.filename)
+    try {
+      const res = await importWallet(this.props.mode, this.props.chainTicker, this.state.filename)
 
-        if (res.msg === 'success') {
-          this.props.dispatch(newSnackbar(SUCCESS_SNACK, `Import successful!`, MID_LENGTH_ALERT))
-        } else {
-          this.props.dispatch(newSnackbar(ERROR_SNACK, res.result))
-        }
-
-        this.props.setModalLock(false)
-        this.props.closeModal()
-        this.setState({ loading: false })
-      } catch(e) {
-        this.props.setModalLock(false)
-        this.setState({ loading: false })
-        this.props.dispatch(newSnackbar(ERROR_SNACK, e.message))
-        console.error(e)
+      if (res.msg === 'success') {
+        this.props.dispatch(newSnackbar(SUCCESS_SNACK, `Import successful!`, MID_LENGTH_ALERT))
+      } else {
+        throw new Error(res.result || "Wallet import failed.")
       }
-    })
-    
+
+      this.props.setModalLock(false)
+      this.setState({ loading: false }, this.props.closeModal)
+      return true
+    } catch(e) {
+      this.props.setModalLock(false)
+      this.setState({ loading: false })
+      this.props.dispatch(newSnackbar(ERROR_SNACK, e.message))
+      console.error(e)
+      return false
+    }
   }
 
   render() {

@@ -5,13 +5,42 @@ import {
 } from './bridgekeeper.render';
 import { appendBridgekeeperLogEntry } from './bridgekeeper.log';
 import {
+  API_ERROR,
+  API_SUCCESS,
   ENTER_DATA,
   STARTBRIDGEKEEPER
 } from "../../../util/constants/componentConstants";
 import { updateConfFile, bridgekeeperStatus, getConfFile } from '../../../util/api/verusbridge/verusbridge';
-const { shell } = window.bridge
+const shell =
+  typeof window !== "undefined" && window.bridge
+    ? window.bridge.shell
+    : null
 const SERVER_OK = 1;
-class Bridgekeeper extends React.Component {
+
+const responseErrorMessage = (value, fallback) => {
+  if (typeof value === "string" && value.length > 0) return value
+  if (value && typeof value.message === "string" && value.message.length > 0) {
+    return value.message
+  }
+  return fallback
+}
+
+export const requireSuccessfulBridgekeeperResponse = (response, operation) => {
+  if (response == null || response.msg === API_ERROR) {
+    throw new Error(
+      responseErrorMessage(
+        response && response.result,
+        `${operation} failed.`
+      )
+    )
+  }
+  if (response.msg !== API_SUCCESS) {
+    throw new Error(`${operation} returned an invalid response.`)
+  }
+  return response.result
+}
+
+export class Bridgekeeper extends React.Component {
   constructor(props) {
     super(props);
 
@@ -25,8 +54,11 @@ class Bridgekeeper extends React.Component {
       continueDisabled: true,
       logData: null,
       infuraNode: '',
-      bridgeKeeperActive: false
+      bridgeKeeperActive: false,
+      bridgeKeeperStatusAvailable: false,
+      lastError: null
     }
+    this.bridgekeeperRequestInProgress = false
 
     this.getFormData = this.getFormData.bind(this)
     this.back = this.back.bind(this)
@@ -38,17 +70,66 @@ class Bridgekeeper extends React.Component {
   }
 
   async componentDidMount() {
-    const { id } = this.props.activeCoin
-    const { result } = await getConfFile(id)
-    const { ethnode } = result;
-
-    if (ethnode) this.setState({ infuraNode: ethnode });
-    const statusReply = await bridgekeeperStatus(id);
-
-    if (statusReply?.result?.serverrunning === SERVER_OK) {
-      this.setState({ bridgeKeeperActive: true });
+    const activeCoin = this.props.activeCoin
+    if (!activeCoin || typeof activeCoin.id !== "string") {
+      const message = "Unable to load Bridgekeeper: the active coin is unavailable."
+      this.updateLog(message)
+      this.setState({ lastError: message })
+      return false
     }
 
+    const { id } = activeCoin
+    let configurationLoaded = false
+    let statusLoaded = false
+    this.bridgekeeperRequestInProgress = true
+    this.setState({ loading: true, lastError: null })
+
+    try {
+      const result = requireSuccessfulBridgekeeperResponse(
+        await getConfFile(id),
+        "Loading Bridgekeeper configuration"
+      )
+      if (result && typeof result.ethnode === "string") {
+        this.setState({ infuraNode: result.ethnode })
+      }
+      configurationLoaded = true
+    } catch (e) {
+      const message = `Unable to load Bridgekeeper configuration: ${e.message}`
+      this.updateLog(message)
+      this.setState({ lastError: message })
+    }
+
+    try {
+      const result = requireSuccessfulBridgekeeperResponse(
+        await bridgekeeperStatus(id),
+        "Loading Bridgekeeper status"
+      )
+      const statusAvailable =
+        result != null && Number.isInteger(result.serverrunning)
+
+      if (!statusAvailable) {
+        throw new Error("Bridgekeeper status is not available yet.")
+      }
+
+      this.setState({
+        bridgeKeeperActive: result.serverrunning === SERVER_OK,
+        bridgeKeeperStatusAvailable: true
+      })
+      statusLoaded = true
+    } catch (e) {
+      const message = `Unable to load Bridgekeeper status: ${e.message}`
+      this.updateLog(message)
+      this.setState({
+        bridgeKeeperActive: false,
+        bridgeKeeperStatusAvailable: false,
+        lastError: message
+      })
+    } finally {
+      this.bridgekeeperRequestInProgress = false
+      this.setState({ loading: false })
+    }
+
+    return configurationLoaded && statusLoaded
   }
 
   getFormData(formData) {
@@ -68,7 +149,9 @@ class Bridgekeeper extends React.Component {
   }
 
   openInfura() {
-    shell.openExternal("https://www.infura.io/")
+    if (shell && typeof shell.openExternal === "function") {
+      shell.openExternal("https://www.infura.io/")
+    }
   }
 
   updateLog(text) {
@@ -85,23 +168,97 @@ class Bridgekeeper extends React.Component {
   }
 
   async setConfFile() {
-    const { id } = this.props.activeCoin
+    if (this.state.loading || this.bridgekeeperRequestInProgress) return false
+
+    const activeCoin = this.props.activeCoin
+    if (!activeCoin || typeof activeCoin.id !== "string") {
+      const message = "Unable to update Bridgekeeper configuration: the active coin is unavailable."
+      this.updateLog(message)
+      this.setState({ lastError: message })
+      return false
+    }
+
+    const { id } = activeCoin
     this.updateLog("Updating vETH .conf file");
-    const confReply = await updateConfFile(id, null, this.state.infuraNode);
-    if (confReply?.result)
-      this.updateLog(confReply.result);
+    this.bridgekeeperRequestInProgress = true
+    if (typeof this.props.setModalLock === "function") {
+      this.props.setModalLock(true)
+    }
+    this.setState({ loading: true, lastError: null })
+
+    try {
+      const result = requireSuccessfulBridgekeeperResponse(
+        await updateConfFile(id, null, this.state.infuraNode),
+        "Updating Bridgekeeper configuration"
+      )
+      this.updateLog(result || "Bridgekeeper configuration updated.")
+      return true
+    } catch (e) {
+      const message = `Unable to update Bridgekeeper configuration: ${e.message}`
+      this.updateLog(message)
+      this.setState({ lastError: message })
+      return false
+    } finally {
+      this.bridgekeeperRequestInProgress = false
+      if (typeof this.props.setModalLock === "function") {
+        this.props.setModalLock(false)
+      }
+      this.setState({ loading: false })
+    }
   }
 
   async getBridgekeeperInfo() {
-    const { id } = this.props.activeCoin
-    const statusReply = await bridgekeeperStatus(id);
+    if (this.state.loading || this.bridgekeeperRequestInProgress) return false
 
-    if (statusReply?.result && statusReply?.result?.logs?.length > 1) {
-      this.updateLog(statusReply?.result?.logs);
-    } else if (statusReply?.result && statusReply.result.serverrunning === SERVER_OK) {
-      this.updateLog("Bridgekeeper server running but no status information available yet...");
-    } else {
-      this.updateLog("No status information available yet, or bridge not running");
+    const activeCoin = this.props.activeCoin
+    if (!activeCoin || typeof activeCoin.id !== "string") {
+      const message = "Unable to load Bridgekeeper status: the active coin is unavailable."
+      this.updateLog(message)
+      this.setState({ lastError: message })
+      return false
+    }
+
+    const { id } = activeCoin
+    this.bridgekeeperRequestInProgress = true
+    this.setState({ loading: true, lastError: null })
+
+    try {
+      const result = requireSuccessfulBridgekeeperResponse(
+        await bridgekeeperStatus(id),
+        "Loading Bridgekeeper status"
+      )
+      const statusAvailable =
+        result != null && Number.isInteger(result.serverrunning)
+
+      if (!statusAvailable) {
+        throw new Error("Bridgekeeper status is not available yet.")
+      }
+
+      this.setState({
+        bridgeKeeperActive: result.serverrunning === SERVER_OK,
+        bridgeKeeperStatusAvailable: true
+      })
+
+      if (result.logs && result.logs.length > 1) {
+        this.updateLog(result.logs)
+      } else if (result.serverrunning === SERVER_OK) {
+        this.updateLog("Bridgekeeper server running but no status information available yet...")
+      } else {
+        this.updateLog("No status information available yet, or bridge not running")
+      }
+      return true
+    } catch (e) {
+      const message = `Unable to load Bridgekeeper status: ${e.message}`
+      this.updateLog(message)
+      this.setState({
+        bridgeKeeperActive: false,
+        bridgeKeeperStatusAvailable: false,
+        lastError: message
+      })
+      return false
+    } finally {
+      this.bridgekeeperRequestInProgress = false
+      this.setState({ loading: false })
     }
   }
 

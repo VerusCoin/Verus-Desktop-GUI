@@ -7,6 +7,7 @@ import {
   ADVANCED_CONVERSION,
   API_GET_RESERVE_TRANSFERS,
   API_SUCCESS,
+  CONFIRM_DATA,
   CONVERT_CURRENCY,
   ENTER_DATA,
   ERROR_SNACK,
@@ -18,10 +19,10 @@ import {
   SIMPLE_CONVERSION,
   WHITELISTS,
 } from "../../../../util/constants/componentConstants";
-import { estimateConversion, getCurrencyConversionPaths, getIdentity, getRefundAddress, sendCurrency, estimateSendcurrencyFee } from '../../../../util/api/wallet/walletCalls';
+import { estimateConversion, getCurrencyConversionPaths, getRefundAddress, sendCurrency, estimateSendcurrencyFee } from '../../../../util/api/wallet/walletCalls';
 import { expireData, newSnackbar, updateLocalWhitelists } from '../../../../actions/actionCreators';
 
-class ConvertCurrencyForm extends React.Component {
+export class ConvertCurrencyForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -208,7 +209,7 @@ class ConvertCurrencyForm extends React.Component {
   }
 
   async confirmSend() {
-    if (this.state.loading) return;
+    if (this.state.loading || !this.hasValidAmounts()) return;
 
     const setLoadingTrue = () => new Promise((resolve) => {
       this.setState({ loading: true }, () => {
@@ -439,12 +440,16 @@ class ConvertCurrencyForm extends React.Component {
 
   isValidAmount(input) {
     return (
-      !isNaN(input) &&
       typeof input === "string" &&
-      !(
-        input[input.length - 1] === "." ||
-        (input.includes(".") && input[input.length - 1] === "0")
-      )
+      input.trim().length > 0 &&
+      Number.isFinite(Number(input)) &&
+      Number(input) > 0
+    );
+  }
+
+  hasValidAmounts() {
+    return this.state.outputs.length > 0 && this.state.outputs.every(
+      (output) => Number.isFinite(output.amount) && output.amount > 0
     );
   }
 
@@ -466,6 +471,7 @@ class ConvertCurrencyForm extends React.Component {
       )
     } else {
       this.setControlAmounts(false)
+      this.updateOutput("amount", 0, index)
     }
   }
 
@@ -493,6 +499,8 @@ class ConvertCurrencyForm extends React.Component {
   }
 
   setFormStep(step) {
+    if (step === CONFIRM_DATA && !this.hasValidAmounts()) return;
+
     this.setState({
       formStep: step
     })
@@ -523,32 +531,10 @@ class ConvertCurrencyForm extends React.Component {
   }
 
   async processAddresses() {
-    let addrList = []
-
-    if (this.props.addresses) {
-      for (const value of this.props.addresses.public) {
-        if (value.tag === 'identity' && !value.address.includes("@")) {
-          try {
-            const id = await getIdentity(
-              NATIVE,
-              this.props.modalProps.chainTicker,
-              value.address
-            );
-
-            if (id.msg !== "success")
-              throw new Error("Error processing id for " + value.address);
-
-            addrList.push(id.result.identity.name + "@");
-          } catch (e) {
-            console.error(e)
-            addrList.push(value.address);
-          }
-        } else addrList.push(value.address);
-      }
-    }
-
     this.setState({
-      addresses: addrList
+      addresses: this.props.addresses
+        ? this.props.addresses.public.map((value) => value.address)
+        : []
     })
   }
 

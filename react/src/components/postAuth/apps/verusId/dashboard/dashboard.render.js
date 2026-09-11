@@ -608,7 +608,7 @@ export const DashboardRevokeDialogue = function() {
         <DialogContentText id="alert-dialog-description">
           {`Are you sure you would like to revoke ${
             identity.name
-            }@? This will cost one transaction fee (0.0001 ${
+            }@ (${identity.identityaddress})? This will cost one transaction fee (0.0001 ${
               chainTicker
               }), and will prevent ${
                 identity.name
@@ -620,7 +620,8 @@ export const DashboardRevokeDialogue = function() {
           {"No"}
         </Button>
         <Button
-          onClick={() => this.revokeId(chainTicker, `${identity.name}@`)}
+          onClick={() => this.revokeId(chainTicker, identity.identityaddress)}
+          disabled={!identity.identityaddress}
           color="primary"
           autoFocus
         >
@@ -849,7 +850,7 @@ export const DashboardRenderIds = function() {
                           revocationId: identity.revocationauthority,
                           recoveryId: identity.recoveryauthority,
                           privateAddr: identity.privateaddress,
-                          name: `${identity.name}@`,
+                          name: identity.identityaddress || "",
                         })
                       }
                       style={{
