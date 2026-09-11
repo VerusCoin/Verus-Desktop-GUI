@@ -19,7 +19,7 @@ import {
 import { newSnackbar } from '../../../../actions/actionCreators';
 import { checkAddrValidity } from '../../../../util/addrUtils';
 
-class UpdateIdentityForm extends React.Component {
+export class UpdateIdentityForm extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -65,7 +65,7 @@ class UpdateIdentityForm extends React.Component {
 
   initFormData() {
     const {
-      name,
+      identityaddress,
       primaryaddresses,
       revocationauthority,
       recoveryauthority,
@@ -74,7 +74,7 @@ class UpdateIdentityForm extends React.Component {
 
     this.setState(
       {
-        name: `${name}@`,
+        name: identityaddress || "",
         primaryAddress: primaryaddresses[0],
         revocationId: revocationauthority,
         recoveryId: recoveryauthority,

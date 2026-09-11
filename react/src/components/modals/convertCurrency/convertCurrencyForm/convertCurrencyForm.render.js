@@ -780,7 +780,7 @@ export const ConvertCurrencyFormAdvancedRender = function() {
                   size="small"
                   onChange={(e) => this.updateAdvancedFormAmount(e, index)}
                   value={
-                    this.state.controlAmounts
+                    isConfirmStep
                       ? amount
                       : sendAmount == null
                       ? ""
@@ -948,7 +948,7 @@ export const ConvertCurrencyFormAdvancedRender = function() {
           title={isConfirmStep ? "Confirm" : "Convert currencies"}
           backgroundColor={"rgb(49, 101, 212)"}
           textColor={"white"}
-          disabled={this.state.loading}
+          disabled={this.state.loading || !this.hasValidAmounts()}
           buttonProps={{
             size: "large",
             color: "default",
