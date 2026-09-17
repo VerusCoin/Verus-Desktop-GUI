@@ -1,4 +1,7 @@
 import '@babel/polyfill';
+import React from 'react';
+
+jest.mock('@crello/react-lottie', () => ({ Lottie: () => null }));
 
 jest.mock('../../src/components/postAuth/uxSelector/uxSelector.render', () => ({
   UxSelectorRender: jest.fn(),
@@ -67,6 +70,8 @@ jest.mock('../../src/util/api/wallet/walletCalls', () => ({
   stopStaking: jest.fn(),
   startMining: jest.fn(),
   stopMining: jest.fn(),
+  sendCurrency: jest.fn(),
+  getIdentity: jest.fn(),
 }));
 jest.mock('../../src/util/api/users/userData', () => ({
   checkAuthentication: jest.fn(),
@@ -105,6 +110,8 @@ import { saveUsers } from '../../src/util/api/users/userData';
 import {
   importWallet as importWalletRequest,
   startStaking,
+  sendCurrency,
+  getIdentity,
 } from '../../src/util/api/wallet/walletCalls';
 import { restartCoinInPlace } from '../../src/actions/actions/coins/dispatchers/coinManager';
 import {
@@ -115,6 +122,12 @@ import { Settings } from '../../src/components/postAuth/apps/settings/settings';
 import { Mining } from '../../src/components/postAuth/apps/mining/mining';
 import { ImportWallet } from '../../src/components/modals/importWallet/importWallet';
 import { Bridgekeeper } from '../../src/components/modals/bridgekeeper/bridgekeeper';
+import { ConvertCurrencyForm } from '../../src/components/modals/convertCurrency/convertCurrencyForm/convertCurrencyForm';
+import { UpdateIdentityForm } from '../../src/components/modals/createIdentity/updateIdentityForm/updateIdentityForm';
+import {
+  DashboardRenderIds,
+  DashboardRevokeDialogue,
+} from '../../src/components/postAuth/apps/verusId/dashboard/dashboard.render';
 import {
   getBridgekeeperControlState,
 } from '../../src/components/postAuth/apps/mining/miningWallet/miningWallet.render';
@@ -134,6 +147,10 @@ import {
   UX_SELECTOR,
   VERUSID,
   WALLET,
+  ADVANCED_CONVERSION,
+  SIMPLE_CONVERSION,
+  ENTER_DATA,
+  CONFIRM_DATA,
 } from '../../src/util/constants/componentConstants';
 
 const installSynchronousSetState = (component) => {
@@ -597,4 +614,190 @@ it('surfaces Bridgekeeper configuration authorization cancellation', async () =>
   expect(component.state.lastError).toContain('Protected operation cancelled.');
   expect(component.state.logData).toContain('Protected operation cancelled.');
   expect(component.props.setModalLock.mock.calls).toEqual([[true], [false]]);
+});
+
+const createConversionComponent = (props = {}) => {
+  const component = new ConvertCurrencyForm({
+    mode: ADVANCED_CONVERSION,
+    modalProps: { chainTicker: 'VRSC' },
+    activeCoin: { id: 'VRSC' },
+    whitelists: {},
+    dispatch: jest.fn(),
+    ...props,
+  });
+  installSynchronousSetState(component);
+  component.updateOutput('currency', 'VRSC');
+  component.updateOutput('convertto', 'destinationCurrency');
+  component.updateOutput('address', 'Rrecipient');
+  return component;
+};
+
+const findConversionElements = (element, predicate) => {
+  let matches = [];
+  React.Children.forEach(element, (child) => {
+    if (!React.isValidElement(child)) return;
+    if (predicate(child.props)) matches.push(child);
+    matches = matches.concat(findConversionElements(child.props.children, predicate));
+  });
+  return matches;
+};
+
+it('confirms and submits the replacement conversion amount, including trailing zeros', async () => {
+  sendCurrency.mockResolvedValue({ msg: 'success' });
+  const component = createConversionComponent();
+  component.updateAdvancedFormAmount({ target: { value: '100' } }, 0);
+  component.updateAdvancedFormAmount({ target: { value: '1.0' } }, 0);
+  component.setFormStep(CONFIRM_DATA);
+
+  const amountField = findConversionElements(component.render(), (props) => props.label === 'Amount')[0];
+  const confirmButton = findConversionElements(component.render(), (props) => props.title === 'Confirm')[0];
+  expect(amountField.props.value).toBe(1);
+  expect(confirmButton.props.disabled).toBe(false);
+
+  await component.confirmSend();
+  expect(sendCurrency.mock.calls[0][2][0].amount).toBe(amountField.props.value);
+});
+
+it.each(['', ' ', 'invalid', 'Infinity', '-1', '0'])('blocks invalid replacement conversion amount %p', async (input) => {
+  const component = createConversionComponent();
+  component.updateAdvancedFormAmount({ target: { value: '100' } }, 0);
+  component.updateAdvancedFormAmount({ target: { value: input } }, 0);
+
+  const button = findConversionElements(component.render(), (props) => props.title === 'Convert currencies')[0];
+  expect(button.props.disabled).toBe(true);
+  component.setFormStep(CONFIRM_DATA);
+  expect(component.state.formStep).toBe(ENTER_DATA);
+
+  await component.confirmSend();
+  expect(sendCurrency).not.toHaveBeenCalled();
+  expect(component.state.outputs[0].amount).toBe(0);
+});
+
+it('keeps conversion amount edits separate across outputs and validates every output', async () => {
+  sendCurrency.mockResolvedValue({ msg: 'success' });
+  const component = createConversionComponent();
+  component.updateAdvancedFormAmount({ target: { value: '1.0' } }, 0);
+  component.addOutput();
+  component.updateOutput('currency', 'VRSC', 1);
+  component.updateOutput('address', 'RotherRecipient', 1);
+  component.updateAdvancedFormAmount({ target: { value: '2' } }, 1);
+  component.updateAdvancedFormAmount({ target: { value: '' } }, 1);
+  component.setFormStep(CONFIRM_DATA);
+  expect(component.state.formStep).toBe(ENTER_DATA);
+  expect(findConversionElements(component.render(), (props) => props.label === 'Amount').map(
+    (field) => field.props.value
+  )).toEqual(['1.0', '']);
+
+  component.updateAdvancedFormAmount({ target: { value: '2.00' } }, 1);
+  component.setFormStep(CONFIRM_DATA);
+  const confirmedAmounts = findConversionElements(component.render(), (props) => props.label === 'Amount').map(
+    (field) => field.props.value
+  );
+  await component.confirmSend();
+  expect(confirmedAmounts).toEqual([1, 2]);
+  expect(sendCurrency.mock.calls[0][2].map((output) => output.amount)).toEqual(confirmedAmounts);
+});
+
+it('keeps the original owned identity address when selecting a conversion recipient', async () => {
+  sendCurrency.mockResolvedValue({ msg: 'success' });
+  // alice.subname@ and alice@ are distinct identities on VRSC.
+  const ownedSubidentity = 'i4EC9jpg9Y6g32VFmitgXzWbe6UVBrfagY';
+  const rootIdentity = 'i5ULg5wze6A1uWGiXSoLjc9KBF1Ea6ZuGd';
+  getIdentity.mockResolvedValue({ msg: 'success', result: { identity: { name: 'alice' } } });
+  const component = createConversionComponent({
+    mode: SIMPLE_CONVERSION,
+    addresses: { public: [
+      { tag: 'identity', address: ownedSubidentity },
+      { tag: 'identity', address: rootIdentity },
+    ] },
+  });
+  await component.processAddresses();
+
+  const destination = findConversionElements(component.render(), (props) => props.name === 'DestinationAddress')[0];
+  expect(destination.props.items).toEqual([ownedSubidentity, rootIdentity]);
+  destination.props.onChange({ target: { value: ownedSubidentity } });
+  component.updateAdvancedFormAmount({ target: { value: '1' } }, 0);
+  component.setFormStep(CONFIRM_DATA);
+  await component.confirmSend();
+
+  expect(sendCurrency.mock.calls[0][2][0].address).toBe(ownedSubidentity);
+  expect(getIdentity).not.toHaveBeenCalled();
+});
+
+const selectedIdentity = (name, identityaddress = 'iJNxjMMUDM2hnGrzWZHdY8QnPEF713uypT') => ({
+  identity: {
+    name,
+    identityaddress,
+    primaryaddresses: ['i4EC9jpg9Y6g32VFmitgXzWbe6UVBrfagY'],
+    revocationauthority: 'i5ULg5wze6A1uWGiXSoLjc9KBF1Ea6ZuGd',
+    recoveryauthority: 'i5ULg5wze6A1uWGiXSoLjc9KBF1Ea6ZuGd',
+  },
+  chainTicker: 'VRSC',
+  canrecover: true,
+  balances: { native: { public: { confirmed: 0 }, private: { confirmed: 0 } } },
+});
+
+const createIdentityUpdateComponent = (identity) => {
+  const component = new UpdateIdentityForm({
+    identity,
+    activeCoin: { id: 'VRSC' },
+    setContinueDisabled: jest.fn(),
+    setFormData: jest.fn(),
+  });
+  installSynchronousSetState(component);
+  component.initFormData();
+  return component;
+};
+
+it.each(['alice', 'alice.subname', 'alice.subname.outer'])(
+  'keeps selected identity targets independent of the displayed name %p', (name) => {
+    // Parent lookup failure and an unqualified cached parent must not redirect actions.
+    const identity = selectedIdentity(name);
+    const address = identity.identity.identityaddress;
+    const component = createIdentityUpdateComponent(identity);
+    expect(component.props.setContinueDisabled).toHaveBeenLastCalledWith(false);
+    expect(component.props.setFormData.mock.calls[0][0].name).toBe(address);
+
+    component.props = { ...component.props, formStep: CONFIRM_DATA, txData: { name: address } };
+    component.generateTxDataDisplay();
+    expect(component.state.txDataDisplay['Name:']).toBe(address);
+
+    const revokeId = jest.fn();
+    const dialogue = DashboardRevokeDialogue.call({
+      state: { revokeDialogueOpen: true, revokeId: identity },
+      closeRevokeDialogue: jest.fn(),
+      revokeId,
+    });
+    const yes = findConversionElements(dialogue, props => props.children === 'Yes')[0];
+    expect(yes.props.disabled).toBe(false);
+    expect(findConversionElements(dialogue, props => (
+      typeof props.children === 'string' && props.children.includes(address)
+    ))).toHaveLength(1);
+    yes.props.onClick();
+    expect(revokeId).toHaveBeenCalledWith('VRSC', address);
+
+    const openRecoverIdModal = jest.fn();
+    const cards = DashboardRenderIds.call({
+      state: { compiledIds: [identity] },
+      props: { selectedCurrencyMap: {}, info: {} },
+      openRecoverIdModal,
+    });
+    const recover = findConversionElements(cards, props => props.title === 'Recover')[0];
+    recover.props.children.props.onClick();
+    expect(openRecoverIdModal.mock.calls[0][1].name).toBe(address);
+  }
+);
+
+it('blocks selected identity actions when the original address is missing', () => {
+  const identity = selectedIdentity('alice', '');
+  const component = createIdentityUpdateComponent(identity);
+  expect(component.props.setContinueDisabled).toHaveBeenLastCalledWith(true);
+  expect(component.props.setFormData.mock.calls[0][0].name).toBe('');
+
+  const dialogue = DashboardRevokeDialogue.call({
+    state: { revokeDialogueOpen: true, revokeId: identity },
+    closeRevokeDialogue: jest.fn(),
+    revokeId: jest.fn(),
+  });
+  expect(findConversionElements(dialogue, props => props.children === 'Yes')[0].props.disabled).toBe(true);
 });
