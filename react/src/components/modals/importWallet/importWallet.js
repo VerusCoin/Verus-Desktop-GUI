@@ -22,7 +22,7 @@ export class ImportWallet extends React.Component {
   }
 
   setFilename(event) {    
-    this.setState({ filename: event.target.files.length > 0 ? event.target.files[0].path : "" });
+    this.setState({ filename: event.target.files.length > 0 ? window.bridge.getPathForFile(event.target.files[0]) : "" });
   }
 
   async importWallet() {
