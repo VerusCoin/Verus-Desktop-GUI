@@ -20,6 +20,12 @@ jest.mock('../../src/components/postAuth/apps/mining/miningWallet/miningWallet',
 jest.mock('../../src/components/modals/importWallet/importWallet.render', () => ({
   ImportWalletRender: jest.fn(),
 }));
+jest.mock('../../src/components/modals/signVerifyIdData/signIdDataForm/signIdDataForm.render', () => ({
+  SignIdDataFormRender: jest.fn(),
+}));
+jest.mock('../../src/components/modals/signVerifyIdData/verifyIdDataForm/verifyIdDataForm.render', () => ({
+  VerifyIdDataFormRender: jest.fn(),
+}));
 jest.mock('../../src/components/modals/bridgekeeper/bridgekeeper.render', () => ({
   BridgekeeperRender: jest.fn(),
 }));
@@ -121,6 +127,8 @@ import {
 import { Settings } from '../../src/components/postAuth/apps/settings/settings';
 import { Mining } from '../../src/components/postAuth/apps/mining/mining';
 import { ImportWallet } from '../../src/components/modals/importWallet/importWallet';
+import SignIdDataForm from '../../src/components/modals/signVerifyIdData/signIdDataForm/signIdDataForm';
+import VerifyIdDataForm from '../../src/components/modals/signVerifyIdData/verifyIdDataForm/verifyIdDataForm';
 import { Bridgekeeper } from '../../src/components/modals/bridgekeeper/bridgekeeper';
 import { ConvertCurrencyForm } from '../../src/components/modals/convertCurrency/convertCurrencyForm/convertCurrencyForm';
 import { UpdateIdentityForm } from '../../src/components/modals/createIdentity/updateIdentityForm/updateIdentityForm';
@@ -170,6 +178,50 @@ beforeEach(() => {
 
 afterEach(() => {
   console.error.mockRestore();
+});
+
+it.each([
+  ['wallet import', ImportWallet, 'setFilename', 'filename'],
+  ['identity data signing', SignIdDataForm.WrappedComponent, 'setFiles', 'fileName'],
+  ['identity data verification', VerifyIdDataForm.WrappedComponent, 'setFiles', 'fileName'],
+])('preserves selected file paths and clearing for %s without File.path', (_, Component, handler, field) => {
+  const previousWindow = global.window;
+  const selectedFile = Object.freeze({ name: 'selected.dat' });
+  const selectedPath = '/wallet backups/selected.dat';
+  const getPathForFile = jest.fn(() => selectedPath);
+  global.window = { bridge: { getPathForFile } };
+
+  try {
+    const component = new Component({
+      setModalHeader: jest.fn(),
+      setContinueDisabled: jest.fn(),
+      setFormData: jest.fn(),
+      formData: {},
+      activeCoin: { id: 'VRSC' },
+    });
+    installSynchronousSetState(component);
+
+    component[handler]({ target: { files: [selectedFile] } });
+    expect(getPathForFile).toHaveBeenCalledWith(selectedFile);
+    expect(component.state[field]).toBe(selectedPath);
+    if (field === 'fileName') {
+      expect(component.props.setFormData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fileName: selectedPath }),
+      );
+    }
+
+    component[handler]({ target: { files: [] } });
+    expect(component.state[field]).toBe('');
+    expect(getPathForFile).toHaveBeenCalledTimes(1);
+    if (field === 'fileName') {
+      expect(component.props.setFormData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ fileName: '' }),
+      );
+    }
+  } finally {
+    if (previousWindow === undefined) delete global.window;
+    else global.window = previousWindow;
+  }
 });
 
 it('activates saved coins serially and waits before restoring navigation', async () => {
