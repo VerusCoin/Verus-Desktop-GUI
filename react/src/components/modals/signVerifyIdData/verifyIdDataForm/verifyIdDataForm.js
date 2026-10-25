@@ -98,7 +98,7 @@ class VerifyIdDataForm extends React.Component {
   }
 
   setFiles(event) {    
-    this.setAndUpdateState({ fileName: event.target.files.length > 0 ? event.target.files[0].path : '' })
+    this.setAndUpdateState({ fileName: event.target.files.length > 0 ? window.bridge.getPathForFile(event.target.files[0]) : '' })
   }
 
   setDataType(e) {
