@@ -10,6 +10,9 @@ import { FormControlLabel } from '@material-ui/core';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import ObjectToTable from '../../../../containers/ObjectToTable/ObjectToTable'
 import CustomCheckbox from '../../../../containers/CustomCheckbox/CustomCheckbox';
+import FormLabel from '@material-ui/core/FormLabel';
+import RadioGroup from '@material-ui/core/RadioGroup';
+import Radio from '@material-ui/core/Radio';
 import {
   ENTER_DATA,
   CONFIRM_DATA,
@@ -28,7 +31,7 @@ export const FundGiftCardFormRender = function() {
         width: "100%",
         height: "85%",
         display: "flex",
-        justifyContent: formStep === ENTER_DATA ? "space-evenly" : "center",
+        justifyContent: formStep === ENTER_DATA ? "flex-start" : "center",
         alignItems: formStep === ENTER_DATA ? "flex-start" : "unset",
         marginBottom: formStep === ENTER_DATA ? 0 : 20,
         flexDirection: "column",
@@ -122,13 +125,15 @@ export const FundGiftCardFormEnterRender = function() {
       <div style={{ fontSize: 16, fontWeight: "bold", color: "rgb(49, 101, 212)" }}>
         {giftCard.label}
       </div>
-      <FormControl variant="outlined" style={{ width: "100%", marginTop: 10 }}>
-        <InputLabel>{"What should this gift card hold?"}</InputLabel>
-        <Select value={mode} onChange={setMode} labelWidth={235}>
-          <MenuItem value={GIFT_CARD_FUNDING_FUNDS}>{"Funds only"}</MenuItem>
-          <MenuItem value={GIFT_CARD_FUNDING_IDENTITY}>{"VerusID"}</MenuItem>
-          <MenuItem value={GIFT_CARD_FUNDING_BOTH}>{"Funds and VerusID"}</MenuItem>
-        </Select>
+      <FormControl component="fieldset" style={{ width: "100%", marginTop: 10 }}>
+        <FormLabel component="legend" style={{ fontSize: 14, color: "rgb(0,0,0)" }}>
+          {"What should this gift card hold?"}
+        </FormLabel>
+        <RadioGroup row value={mode} onChange={setMode}>
+          <FormControlLabel value={GIFT_CARD_FUNDING_FUNDS} control={<Radio color="primary" />} label="Funds only" />
+          <FormControlLabel value={GIFT_CARD_FUNDING_IDENTITY} control={<Radio color="primary" />} label="VerusID" />
+          <FormControlLabel value={GIFT_CARD_FUNDING_BOTH} control={<Radio color="primary" />} label="Funds and VerusID" />
+        </RadioGroup>
       </FormControl>
       <Button
         color="primary"

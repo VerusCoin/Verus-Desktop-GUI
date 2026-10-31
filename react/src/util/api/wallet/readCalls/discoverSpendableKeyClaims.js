@@ -5,10 +5,12 @@ import { API_DISCOVER_SPENDABLE_KEY_CLAIMS, NATIVE, POST } from '../../../consta
  * Finds the funds and VerusIDs a gift card (spendable key) address holds, before claim fees
  * @param {String} chainTicker Chain the gift card is on
  * @param {String} address Gift card address to check
+ * @param {String[]} expectedIdentities Addresses of the VerusIDs the gift card is known to have held
  */
 export const discoverSpendableKeyClaims = async (
   chainTicker,
-  address
+  address,
+  expectedIdentities = []
 ) => {
   try {
     return await getApiData(
@@ -17,7 +19,8 @@ export const discoverSpendableKeyClaims = async (
       {
         chainTicker,
         address,
-        subtractDisplayFees: false
+        subtractDisplayFees: false,
+        expectedIdentities
       },
       POST
     );

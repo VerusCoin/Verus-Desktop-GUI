@@ -134,6 +134,24 @@ export const needsUnfundedShareWarning = (giftCard) => {
   return giftCard != null && !hasGiftCardClaims(giftCard) && !hasGiftCardBeenRedeemed(giftCard)
 }
 
+// Mobile's getExpectedFundingIdentities: IDs seen on the card, claimed from it, or moved to it by a
+// confirmed funding. A VerusID on a card leaves nothing at the card's address, so Desktop looks
+// these up directly.
+export const getExpectedFundingIdentities = (giftCard) => {
+  const status = giftCard.status || {}
+  const confirmedFundings = (giftCard.fundingHistory || []).filter(
+    entry => entry.status === GIFT_CARD_FUNDING_STATUS_CONFIRMED
+  )
+
+  return [
+    ...new Set([
+      ...(status.identities || []).map(identity => identity.identityAddress),
+      ...((status.claimInfo && status.claimInfo.identities) || []),
+      ...confirmedFundings.flatMap(entry => (entry.identities || []).map(identity => identity.identityAddress))
+    ])
+  ].filter(identityAddress => typeof identityAddress === 'string' && identityAddress.length > 0)
+}
+
 // Leaves out the check time, so a refresh only counts as a change if the card's contents changed
 export const getRefreshComparableCard = (giftCard) => {
   return JSON.stringify({
@@ -202,7 +220,12 @@ const resolveFundingHistory = async (chainTicker, fundingHistory) => {
  * @param {Object} giftCard The gift card to refresh
  */
 export const refreshGiftCardStatus = async (giftCard) => {
-  const claimsRes = await discoverSpendableKeyClaims(giftCard.chainTicker, giftCard.address)
+  const fundingHistory = await resolveFundingHistory(giftCard.chainTicker, giftCard.fundingHistory)
+  const claimsRes = await discoverSpendableKeyClaims(
+    giftCard.chainTicker,
+    giftCard.address,
+    getExpectedFundingIdentities({ ...giftCard, fundingHistory })
+  )
 
   if (claimsRes.msg !== API_SUCCESS) throw new Error(claimsRes.result)
 
@@ -226,6 +249,6 @@ export const refreshGiftCardStatus = async (giftCard) => {
       hasMempoolTransactions: hasMempoolTransactions === true,
       lastCheckedAt: Date.now()
     },
-    fundingHistory: await resolveFundingHistory(giftCard.chainTicker, giftCard.fundingHistory)
+    fundingHistory
   }
 }
