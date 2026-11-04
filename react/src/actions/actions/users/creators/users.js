@@ -9,6 +9,8 @@ import {
   SET_LOGOUT_USER,
   FINISH_LOGOUT_USER,
   SELECT_CURRENCY_FOR_COIN,
+  SET_GIFT_CARD,
+  REMOVE_GIFT_CARD,
 } from "../../../../util/constants/storeType";
 import { ETH, ELECTRUM, UX_SELECTOR, POST_AUTH, NATIVE, ERC20 } from '../../../../util/constants/componentConstants'
 import { makeId } from '../../../../util/idGenerator'
@@ -28,6 +30,7 @@ export const getNewUser = () => {
     id: makeId(),
     lastCoins: {},
     startCoins: {},
+    giftCards: {},
     startupOptions: {
       [NATIVE]: {},
       [ELECTRUM]: {},
@@ -178,5 +181,27 @@ export const setUserPreferredCurrency = (chainTicker, currency) => {
     type: SELECT_CURRENCY_FOR_COIN,
     chainTicker,
     currency
+  }
+}
+
+/**
+ * Adds or replaces a gift card on the active user, keyed by its address
+ * @param {Object} giftCard The gift card to save
+ */
+export const setGiftCard = (giftCard) => {
+  return {
+    type: SET_GIFT_CARD,
+    giftCard
+  }
+}
+
+/**
+ * Removes a gift card from the active user
+ * @param {String} address The address of the gift card to remove
+ */
+export const removeGiftCard = (address) => {
+  return {
+    type: REMOVE_GIFT_CARD,
+    address
   }
 }

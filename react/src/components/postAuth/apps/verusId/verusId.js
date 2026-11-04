@@ -2,6 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import {
   DASHBOARD,
+  GIFT_CARDS,
   IS_VERUS,
   ID_POSTFIX,
   NATIVE,
@@ -11,6 +12,7 @@ import {
   FIX_CHARACTER,
 } from "../../../../util/constants/componentConstants";
 import Dashboard from './dashboard/dashboard'
+import GiftCards from './giftCards/giftCards'
 import {
   IdCardRender,
   IdTabsRender
@@ -28,6 +30,7 @@ import HelpIcon from '@material-ui/icons/Help';
 
 const COMPONENT_MAP = {
   [DASHBOARD]: <Dashboard />,
+  [GIFT_CARDS]: <GiftCards />,
 }
 
 class VerusId extends React.Component {
@@ -49,6 +52,7 @@ class VerusId extends React.Component {
     this.setTabs = this.setTabs.bind(this)
     this.openId = this.openId.bind(this)
     this.openDashboard = this.openDashboard.bind(this)
+    this.openGiftCards = this.openGiftCards.bind(this)
     this.updateSearchTerm = this.updateSearchTerm.bind(this)
     this.closeSearchModal = this.closeSearchModal.bind(this)
     this.openSearchModal = this.openSearchModal.bind(this)
@@ -202,6 +206,17 @@ class VerusId extends React.Component {
     })
   }
 
+  openGiftCards() {
+    this.setState({
+      activeId: {
+        chainTicker: null,
+        idIndex: null
+      }
+    }, () => {
+      this.props.dispatch(setMainNavigationPath(`${getPathParent(this.props.mainPathArray)}/${GIFT_CARDS}`))
+    })
+  }
+
   setTabs() {
     this.props.setTabs(IdTabsRender.call(this))
   }
@@ -341,6 +356,7 @@ const mapStateToProps = (state) => {
     activatedCoins: state.coins.activatedCoins,
     fiatPrices: state.ledger.fiatPrices,
     fiatCurrency: state.settings.config.general.main.fiatCurrency,
+    experimentalFeatures: state.settings.config.general.main.experimentalFeatures,
     identities: state.ledger.identities,
     nameCommitments: state.ledger.nameCommitments,
     activeUser: state.users.activeUser,

@@ -36,6 +36,7 @@ export const API_GET_NAME_COMMITMENTS = 'get_name_commitments'
 export const API_GET_PRIVKEY = 'get_privkey'
 export const API_GET_PUBKEY = 'get_pubkey'
 export const API_GET_IDENTITY = 'get_identity'
+export const API_GET_TRANSACTION = 'get_transaction'
 export const API_GET_CURRENCY = 'get_currency'
 export const API_ESTIMATE_CONVERSION = 'estimate_conversion'
 export const API_ESTIMATE_SENDCURRENCY_FEE = 'estimate_sendcurrency_fee'
@@ -190,6 +191,7 @@ export const SELECT_PROFILE = 'select_profile'
 export const UNLOCK_PROFILE = 'unlock_profile'
 export const APPS = 'apps'
 export const DASHBOARD = 'dashboard'
+export const GIFT_CARDS = 'gift_cards'
 export const FIX_CHARACTER = '|'
 export const CHAIN_POSTFIX = 'chain'
 export const ID_POSTFIX = 'identity'
@@ -215,6 +217,9 @@ export const CREATE_IDENTITY = 'create_identity'
 export const SIGN_VERIFY_ID_DATA = 'sign_verify_id_data'
 export const VERIFY_ID_DATA = 'verify_id_data'
 export const SIGN_ID_DATA = 'sign_id_data'
+export const GIFT_CARD = 'gift_card'
+export const CREATE_GIFT_CARD = 'create_gift_card'
+export const FUND_GIFT_CARD = 'fund_gift_card'
 export const TX_INFO = 'tx_info'
 export const CSV_EXPORT = 'csv_export'
 export const WALLET_IMPORT = 'wallet_import'
@@ -417,6 +422,10 @@ export const SEND_CURRENCY = 'sendcurrency'
 export const ERROR_NAME_REQUIRED = 'A name is required'
 export const ERROR_INVALID_Z_ADDR = 'Invalid private address'
 
+// Gift card form errors
+export const ERROR_GIFT_CARD_PASSWORD_MISMATCH = 'Claim password and confirmation do not match.'
+export const ERROR_GIFT_CARD_NO_SELECTION = 'Select at least one item before continuing.'
+
 // Create identity defaults
 export const DEFAULT_REFERRAL_IDS = {
   ["VRSC"]: 'Verus Coin Foundation@'
@@ -452,6 +461,15 @@ export const STAKE_BALANCE_INFO =
 export const ID_ACTIVE = 'active'
 export const ID_REVOKED = 'revoked'
 
+// Gift cards
+//export const GIFT_CARD_REFRESH_INTERVAL_MS = 30000
+export const GIFT_CARD_FUNDING_FUNDS = 'funds'
+export const GIFT_CARD_FUNDING_IDENTITY = 'identity'
+export const GIFT_CARD_FUNDING_BOTH = 'both'
+export const GIFT_CARD_FUNDING_STATUS_PENDING = 'pending'
+export const GIFT_CARD_FUNDING_STATUS_CONFIRMED = 'confirmed'
+export const SPENDABLE_KEY_CLAIM_NON_NATIVE_FEE_COINS = 0.0002
+
 // Sections of the app that can load by being indicated as 'loading' in the
 // loading reducer
 export const MINING_FUNCTIONS = 'mining_functions'
@@ -474,6 +492,11 @@ export const API_VISUALIZE_PBAAS_NETWORK = 'plugin/builtin/verus_pbaas_visualize
 // VerusID
 export const API_SIGN_LOGIN_CONSENT_RESPONSE = "verusid/login/sign_response"
 export const API_VERIFY_LOGIN_CONSENT_REQUEST = "verusid/login/verify_request"
+export const API_CREATE_SPENDABLE_KEY = "verusid/giftcard/create_spendable_key"
+export const API_FUND_SPENDABLE_KEY_PREFLIGHT = "verusid/giftcard/fund_spendable_key_preflight"
+export const API_FUND_SPENDABLE_KEY = "verusid/giftcard/fund_spendable_key"
+export const API_REDEEM_SPENDABLE_KEY = "verusid/giftcard/redeem_spendable_key"
+export const API_DISCOVER_SPENDABLE_KEY_CLAIMS = "verusid/generic/discover_spendable_key_claims"
 
 // Add Coin modal constants
 export const ADD_DEFAULT_COIN = 'add_default_preset'

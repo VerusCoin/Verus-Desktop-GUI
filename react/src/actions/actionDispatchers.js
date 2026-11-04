@@ -10,6 +10,7 @@ export * from './actions/coins/dispatchers/coinManager'
 
 // Users
 export * from './actions/users/dispatchers/logout'
+export * from './actions/users/dispatchers/giftCards'
 
 // System
 export * from './actions/system/dispatchers/updateSysTime'

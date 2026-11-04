@@ -18,7 +18,9 @@ import {
   FINISH_LOGOUT_USER,
   SELECT_CURRENCY_FOR_COIN,
   SET_STARTUP_OPTIONS,
-  SET_AUTHENTICATION
+  SET_AUTHENTICATION,
+  SET_GIFT_CARD,
+  REMOVE_GIFT_CARD
 } from '../util/constants/storeType'
 import {
   ETH,
@@ -82,6 +84,27 @@ export const users = (state = {
           [action.chainTicker]: action.currency
         } : { ...state.activeUser.selectedCurrencyMap, [action.chainTicker]: action.currency }
       }
+
+      return {
+        ...state,
+        activeUser: _activeUser,
+        loadedUsers: { ...state.loadedUsers, [_activeUser.id]: _activeUser }
+      }
+    case SET_GIFT_CARD:
+      _activeUser = {
+        ...state.activeUser,
+        giftCards: { ...state.activeUser.giftCards, [action.giftCard.address]: action.giftCard }
+      }
+
+      return {
+        ...state,
+        activeUser: _activeUser,
+        loadedUsers: { ...state.loadedUsers, [_activeUser.id]: _activeUser }
+      }
+    case REMOVE_GIFT_CARD:
+      let newGiftCards = { ...state.activeUser.giftCards }
+      delete newGiftCards[action.address]
+      _activeUser = { ...state.activeUser, giftCards: newGiftCards }
 
       return {
         ...state,

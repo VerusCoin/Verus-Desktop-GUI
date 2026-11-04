@@ -2,6 +2,7 @@ import React from 'react';
 import VerusIdStyles from './verusId.styles'
 import {
   DASHBOARD,
+  GIFT_CARDS,
   CHAIN_FALLBACK_IMAGE,
   ADD_DEFAULT_COIN,
   POST_SYNC
@@ -127,6 +128,16 @@ export const IdTabsRender = function() {
       onClick: () => this.openDashboard(),
       isActive: () => this.props.mainPathArray.includes(DASHBOARD)
     },
+    ...(this.props.experimentalFeatures
+      ? [
+          {
+            title: "Gift Cards",
+            icon: 'fa-gift',
+            onClick: () => this.openGiftCards(),
+            isActive: () => this.props.mainPathArray.includes(GIFT_CARDS)
+          }
+        ]
+      : []),
     {
       title: "Add Coin",
       icon: 'fa-plus',

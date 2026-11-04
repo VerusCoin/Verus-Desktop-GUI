@@ -20,7 +20,8 @@ import {
   SETUP_VAULT,
   WALLET_IMPORT,
   IMMATURE_DETAILS,
-  STARTBRIDGEKEEPER
+  STARTBRIDGEKEEPER,
+  GIFT_CARD
 } from "../../util/constants/componentConstants";
 import AddCoin from "./addCoin/addCoin";
 import SetupVault from "./setupVault/setupVault";
@@ -38,6 +39,7 @@ import ExportToCsv from "./exportToCsv/exportToCsv";
 import OperationInfo from "./operationInfo/operationInfo";
 import ImmatureDetails from "./immatureDetails/immatureDetails";
 import SignVerifyIdData from "./signVerifyIdData/signVerifyIdData";
+import GiftCard from "./giftCard/giftCard";
 import ShieldCoinbase from "./shieldCoinbase/shieldCoinbase";
 import Bridgekeeper from "./bridgekeeper/bridgekeeper";
 import { BasicModalRender } from "./modalTypes/basicModal.render";
@@ -79,6 +81,7 @@ export const ModalRender = function() {
     [OPERATION_INFO]: <OperationInfo {...COMPONENT_PROPS} />,
     [IMMATURE_DETAILS]: <ImmatureDetails {...COMPONENT_PROPS} />,
     [SIGN_VERIFY_ID_DATA]: <SignVerifyIdData {...COMPONENT_PROPS} />,
+    [GIFT_CARD]: <GiftCard {...COMPONENT_PROPS} />,
     [SHIELDCOINBASE]: <ShieldCoinbase {...COMPONENT_PROPS} />,
     [STARTBRIDGEKEEPER]: <Bridgekeeper {...COMPONENT_PROPS} />,
   };
